@@ -1,170 +1,225 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useDispatch, useSelector } from "react-redux";
+import { loginUser, registerUser } from "../../store/auth/authThunks";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 
-export default function Auth() {
-  const [mode, setMode] = useState("login");
-  const [showPassword, setShowPassword] = useState(false);
+
+const loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+const registerSchema = z
+  .object({
+    name: z.string().min(3, "Name must be at least 3 characters"),
+    email: z.string().email("Invalid email address"),
+    phone_number: z
+      .string()
+      .regex(/^(\+91)?[6-9]\d{9}$/, "Enter valid Indian phone number"),
+    password: z
+      .string()
+      .min(8, "Minimum 8 characters")
+      .regex(/[A-Z]/, "Must contain uppercase")
+      .regex(/[a-z]/, "Must contain lowercase")
+      .regex(/[0-9]/, "Must contain number"),
+    confirm_password: z.string(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.password !== data.confirm_password) {
+      ctx.addIssue({
+        path: ["confirm_password"],
+        message: "Passwords do not match",
+        code: z.ZodIssueCode.custom,
+      });
+    }
+  });
+
+
+function LoginRegister() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { loading, error } = useSelector((state) => state.auth);
+
+  const [isLogin, setIsLogin] = useState(true);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(isLogin ? loginSchema : registerSchema),
+  });
+
+
+const onSubmit = async (data) => {
+  try {
+    if (isLogin) {
+      await dispatch(loginUser(data)).unwrap();
+      navigate("/");
+    } else {
+      const { confirm_password, ...registerData } = data;
+
+      const response = await dispatch(registerUser(registerData)).unwrap();
+
+      localStorage.setItem("otp_phone", registerData.phone_number);
+
+      navigate("/verify-otp");
+    }
+  } catch (err) {
+    console.error("Auth Error:", err);
+  }
+};
 
   return (
-    <div className="min-h-screen flex flex-col bg-background-dark font-display text-white">
-      
-      {/* Header */}
-    <Navbar />
+    <div className="dark bg-background-dark min-h-screen flex flex-col text-white">
+      <Navbar />
 
-
-      {/* Main */}
       <main className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-[440px] bg-card-dark border border-border-dark rounded-xl p-8 shadow-2xl">
-          
-          {/* Title */}
+
           <div className="text-center mb-8">
-            <h1 className="text-[28px] font-bold">
-              {mode === "login" ? "Welcome back" : "Create account"}
+            <h1 className="text-[28px] font-bold tracking-tight">
+              {isLogin ? "Welcome back" : "Create your account"}
             </h1>
-            <p className="text-gray-400 text-sm">
-              {mode === "login"
-                ? "Enter your details to access your account"
-                : "Fill the details to get started"}
-            </p>
           </div>
 
-          {/* Mode Switch */}
+          {/* Toggle */}
           <div className="flex mb-8">
-            <div className="flex h-11 flex-1 bg-input-dark border border-border-dark rounded-lg p-1">
-              {["login", "register"].map((item) => (
-                <button
-                  key={item}
-                  onClick={() => setMode(item)}
-                  className={`flex-1 rounded-md text-sm font-medium transition-all
-                    ${
-                      mode === item
-                        ? "bg-background-dark text-white"
-                        : "text-gray-500"
-                    }`}
-                >
-                  {item.charAt(0).toUpperCase() + item.slice(1)}
-                </button>
-              ))}
+            <div className="flex h-11 flex-1 rounded-lg bg-input-dark border border-border-dark p-1">
+              <button
+                type="button"
+                onClick={() => setIsLogin(true)}
+                className={`flex-1 rounded-md ${
+                  isLogin ? "bg-background-dark" : "text-gray-500"
+                }`}
+              >
+                Login
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsLogin(false)}
+                className={`flex-1 rounded-md ${
+                  !isLogin ? "bg-background-dark" : "text-gray-500"
+                }`}
+              >
+                Register
+              </button>
             </div>
           </div>
 
-          {/* Form */}
-          <form className="space-y-5">
-            {/* Email */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+
+            {!isLogin && (
+              <>
+                <div>
+                  <label>Full Name</label>
+                  <input
+                    {...register("name")}
+                    className="mt-2 w-full h-12 rounded-lg bg-input-dark border border-border-dark px-4"
+                  />
+                  {errors.name && (
+                    <p className="text-red-500 text-xs">
+                      {errors.name.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label>Phone Number</label>
+                  <input
+                    {...register("phone_number")}
+                    className="mt-2 w-full h-12 rounded-lg bg-input-dark border border-border-dark px-4"
+                  />
+                  {errors.phone_number && (
+                    <p className="text-red-500 text-xs">
+                      {errors.phone_number.message}
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
             <div>
-              <label className="text-sm font-medium">
-                Email Address
-              </label>
+              <label>Email</label>
               <input
+                {...register("email")}
                 type="email"
-                placeholder="name@example.com"
-                className="mt-2 w-full h-12 px-4 rounded-lg bg-input-dark border border-border-dark text-white placeholder-gray-600 focus:ring-1 focus:ring-white/40 outline-none"
+                className="mt-2 w-full h-12 rounded-lg bg-input-dark border border-border-dark px-4"
               />
+              {errors.email && (
+                <p className="text-red-500 text-xs">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
-            {/* Password */}
             <div>
-              <div className="flex justify-between items-center">
-                <label className="text-sm font-medium">
-                  Password
-                </label>
-                {mode === "login" && (
-                  <a
-                    href="#"
-                    className="text-xs text-gray-500 hover:text-white"
-                  >
-                    Forgot?
-                  </a>
-                )}
-              </div>
-
-              <div className="relative mt-2">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
-                  className="w-full h-12 px-4 pr-12 rounded-lg bg-input-dark border border-border-dark text-white placeholder-gray-600 focus:ring-1 focus:ring-white/40 outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
-                >
-                  <span className="material-symbols-outlined text-[20px]">
-                    {showPassword ? "visibility_off" : "visibility"}
-                  </span>
-                </button>
-              </div>
+              <label>Password</label>
+              <input
+                {...register("password")}
+                type="password"
+                className="mt-2 w-full h-12 rounded-lg bg-input-dark border border-border-dark px-4"
+              />
+              {errors.password && (
+                <p className="text-red-500 text-xs">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
-            {/* Remember */}
-            {mode === "login" && (
-              <div className="flex items-center gap-2">
-                <input type="checkbox" className="w-4 h-4 accent-white" />
-                <span className="text-gray-400 text-xs">
-                  Keep me logged in for 30 days
-                </span>
+            {!isLogin && (
+              <div>
+                <label>Confirm Password</label>
+                <input
+                  {...register("confirm_password")}
+                  type="password"
+                  className="mt-2 w-full h-12 rounded-lg bg-input-dark border border-border-dark px-4"
+                />
+                {errors.confirm_password && (
+                  <p className="text-red-500 text-xs">
+                    {errors.confirm_password.message}
+                  </p>
+                )}
               </div>
             )}
 
-            {/* Submit */}
+            {error && (
+              <p className="text-red-500 text-sm text-center">{error}</p>
+            )}
+
             <button
               type="submit"
-              className="w-full h-12 rounded-lg bg-white text-black font-bold hover:bg-gray-200 transition"
+              disabled={loading}
+              className="w-full h-12 rounded-lg bg-primary text-background-dark font-bold text-sm hover:bg-gray-200 disabled:opacity-50"
             >
-              {mode === "login" ? "Sign In" : "Create Account"}
+              {loading
+                ? "Processing..."
+                : isLogin
+                ? "Sign In"
+                : "Register"}
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="relative my-8">
-            <div className="border-t border-border-dark" />
-            <span className="absolute inset-0 -top-2 flex justify-center bg-card-dark px-2 text-xs text-gray-500">
-              Or continue with
-            </span>
-          </div>
-
-          {/* Social */}
-          <div className="grid grid-cols-2 gap-4">
-            {["Google", "Facebook"].map((provider) => (
-              <button
-                key={provider}
-                className="h-11 rounded-lg border border-border-dark bg-input-dark text-xs font-medium hover:bg-border-dark transition"
-              >
-                {provider}
-              </button>
-            ))}
-          </div>
-
-          {/* Footer */}
           <p className="mt-8 text-center text-xs text-gray-500">
-            {mode === "login" ? (
-              <>
-                Don’t have an account?{" "}
-                <button
-                  onClick={() => setMode("register")}
-                  className="text-white font-medium hover:underline"
-                >
-                  Create one
-                </button>
-              </>
-            ) : (
-              <>
-                Already have an account?{" "}
-                <button
-                  onClick={() => setMode("login")}
-                  className="text-white font-medium hover:underline"
-                >
-                  Sign in
-                </button>
-              </>
-            )}
+            {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+            <span
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-white font-medium cursor-pointer"
+            >
+              {isLogin ? "Create an account" : "Login"}
+            </span>
           </p>
         </div>
       </main>
 
-      {/* Footer */}
       <Footer />
     </div>
   );
 }
+
+export default LoginRegister;

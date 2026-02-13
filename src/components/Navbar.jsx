@@ -1,24 +1,85 @@
-function Navbar() {
-  return (
-    <header className="sticky top-0 z-50 border-b border-border-dark bg-background-dark/50 backdrop-blur-md">
-      <div className="flex items-center justify-between px-10 py-4">
-        <div className="flex items-center gap-4 text-white">
-          <div className="size-6">
-            <svg viewBox="0 0 48 48" fill="none">
-              <path
-                d="M8.57829 8.57829L24 24L39.4217 8.57829C42.4718 11.6284 44.549 15.5145 45.3905 19.7452C46.2321 23.9758 45.8002 28.361 44.1494 32.3462C42.4987 36.3314 39.7033 39.7375 36.1168 42.134C32.5302 44.5305 28.3135 45.8096 24 45.8096C19.6865 45.8096 15.4698 44.5305 11.8832 42.134C8.29667 39.7376 5.50128 36.3314 3.85056 32.3462C2.19984 28.361 1.76794 23.9758 2.60947 19.7452C3.451 15.5145 5.52816 11.6284 8.57829 8.57829Z"
-                fill="currentColor"
-              />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold tracking-tight">FindMySeat</h2>
-        </div>
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate, Link } from "react-router-dom";
+import { logout } from "../store/auth/authSlice";
+import FindMySeatIcon from "../assets/findmyseat.svg";
 
-        <nav className="hidden md:flex gap-9">
-          <a className="text-gray-400 hover:text-white text-sm">Events</a>
-          <a className="text-gray-400 hover:text-white text-sm">Venues</a>
-          <a className="text-gray-400 hover:text-white text-sm">About</a>
+function Navbar() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
+
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate("/login");
+  };
+
+  return (
+    <header className="sticky top-0 z-50 border-b border-[#282e39] bg-background-dark/80 backdrop-blur-md">
+      <div className="flex items-center justify-between px-6 md:px-10 py-4 max-w-[1440px] mx-auto">
+        {/* Logo Section */}
+        <Link to="/" className="flex items-center gap-3 text-white">
+          <div className="size-8">
+            <img src={FindMySeatIcon} alt="FindMySeat Logo" className="w-full h-full" />
+          </div>
+          <h2 className="text-xl font-black tracking-tighter uppercase">FindMySeat</h2>
+        </Link>
+
+        {/* Navigation Links */}
+        <nav className="hidden md:flex gap-8">
+          <Link to="/events" className="text-sm font-medium text-[#9ca6ba] hover:text-white transition-colors">
+            Events
+          </Link>
+          <Link to="/venues" className="text-sm font-medium text-[#9ca6ba] hover:text-white transition-colors">
+            Venues
+          </Link>
+          <Link to="/about" className="text-sm font-medium text-[#9ca6ba] hover:text-white transition-colors">
+            About
+          </Link>
         </nav>
+
+        {/* Auth Section */}
+        <div className="flex items-center gap-4">
+          {!isAuthenticated ? (
+            <>
+              <Link
+                to="/login"
+                className="px-4 py-2 text-sm font-bold text-white bg-primary rounded-lg hover:bg-primary/90 transition-all"
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/login"
+                className="hidden sm:block px-4 py-2 text-sm font-semibold text-white bg-[#1E1E1E] border border-[#282e39] rounded-lg hover:bg-[#282e39] transition-all"
+              >
+                Register
+              </Link>
+            </>
+          ) : (
+            <>
+              {/* User Profile */}
+              <Link 
+                to="/profile" 
+                className="flex items-center gap-2 bg-[#1E1E1E] border border-[#282e39] rounded-lg px-3 py-2 hover:bg-[#282e39] transition-all cursor-pointer"
+              >
+                <div className="size-8 rounded-full bg-primary flex items-center justify-center text-white font-black text-sm">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <span className="hidden sm:block text-sm font-semibold text-white">
+                  {user.name}
+                </span>
+              </Link>
+
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 text-sm font-semibold text-white bg-[#1E1E1E] border border-[#282e39] rounded-lg hover:bg-red-600 hover:border-red-600 transition-all"
+              >
+                Logout
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );
