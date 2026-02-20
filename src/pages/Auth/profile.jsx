@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { logout } from "../../store/auth/authSlice";
+import { changePassword } from "../../store/auth/authThunks";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { 
@@ -11,22 +12,34 @@ import {
   FaCreditCard, 
   FaEye, 
   FaEyeSlash,
-  FaInfoCircle 
+  FaInfoCircle,
+  FaCheckCircle,
+  FaExclamationCircle 
 } from "react-icons/fa";
 
 function Profile() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { user } = useSelector((state) => state.auth);
+  const { user, loading } = useSelector((state) => state.auth);
 
   const [activeTab, setActiveTab] = useState("personal");
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+  // Success/Error states
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [validationErrors, setValidationErrors] = useState({});
+
+  // Form data
   const [formData, setFormData] = useState({
     fullName: user?.name || "Unknown",
     email: user?.email || "Unknown",
-  phone: user?.phone_number || "Not Available",
+    phone: user?.phone_number || "Not Available",
     currentPassword: "",
     newPassword: "",
     confirmPassword: ""
@@ -37,11 +50,119 @@ function Profile() {
       ...formData,
       [e.target.name]: e.target.value
     });
+
+    // Clear validation errors on input
+    if (validationErrors[e.target.name]) {
+      setValidationErrors({
+        ...validationErrors,
+        [e.target.name]: ""
+      });
+    }
   };
 
-  const handleSaveChanges = (e) => {
+  const togglePasswordVisibility = (field) => {
+    setShowPassword({
+      ...showPassword,
+      [field]: !showPassword[field]
+    });
+  };
+
+  // Validate password
+  const validatePassword = (password) => {
+    const errors = [];
+    if (password.length < 8) {
+      errors.push("Password must be at least 8 characters");
+    }
+    if (!/[A-Z]/.test(password)) {
+      errors.push("Password must contain at least one uppercase letter");
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      errors.push("Password must contain at least one special character");
+    }
+    return errors;
+  };
+
+  // Handle password change
+  const handlePasswordChange = async (e) => {
     e.preventDefault();
-    console.log("Saving changes:", formData);
+    
+    // Reset states
+    setPasswordSuccess(false);
+    setPasswordError("");
+    setValidationErrors({});
+
+    const errors = {};
+
+    // Validate current password
+    if (!formData.currentPassword) {
+      errors.currentPassword = "Current password is required";
+    }
+
+    // Validate new password
+    if (!formData.newPassword) {
+      errors.newPassword = "New password is required";
+    } else {
+      const passwordValidationErrors = validatePassword(formData.newPassword);
+      if (passwordValidationErrors.length > 0) {
+        errors.newPassword = passwordValidationErrors[0];
+      }
+    }
+
+    // Validate confirm password
+    if (!formData.confirmPassword) {
+      errors.confirmPassword = "Please confirm your new password";
+    } else if (formData.newPassword !== formData.confirmPassword) {
+      errors.confirmPassword = "Passwords do not match";
+    }
+
+    // Check if current password is same as new password
+    if (formData.currentPassword && formData.newPassword && 
+        formData.currentPassword === formData.newPassword) {
+      errors.newPassword = "New password must be different from current password";
+    }
+
+    // If there are validation errors, set them and return
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+
+    try {
+      await dispatch(
+        changePassword({
+          current_password: formData.currentPassword,
+          new_password: formData.newPassword
+        })
+      ).unwrap();
+
+      // Success
+      setPasswordSuccess(true);
+      setPasswordError("");
+      
+      // Clear password fields
+      setFormData({
+        ...formData,
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      });
+
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => {
+        setPasswordSuccess(false);
+      }, 5000);
+
+    } catch (error) {
+      setPasswordError(error || "Failed to change password");
+      setPasswordSuccess(false);
+    }
+  };
+
+  // Handle personal info save
+  const handleSavePersonalInfo = (e) => {
+    e.preventDefault();
+    console.log("Saving personal info:", formData);
+    // TODO: Implement personal info update API call
   };
 
   const handleDeleteAccount = () => {
@@ -72,7 +193,7 @@ function Profile() {
                   <span className="relative z-10">{user?.name?.charAt(0).toUpperCase() || "A"}</span>
                 </div>
                 <div className="flex flex-col">
-                  <h1 className="text-white text-lg font-bold">{user?.name || "Alex Rivera"}</h1>
+                  <h1 className="text-white text-lg font-bold">{user?.name || "User"}</h1>
                   <p className="text-[#9dabb9] text-xs">Member since 2023</p>
                 </div>
               </div>
@@ -84,7 +205,12 @@ function Profile() {
                   return (
                     <button
                       key={item.id}
-                      onClick={() => setActiveTab(item.id)}
+                      onClick={() => {
+                        setActiveTab(item.id);
+                        setPasswordSuccess(false);
+                        setPasswordError("");
+                        setValidationErrors({});
+                      }}
                       className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                         activeTab === item.id
                           ? "bg-primary text-white shadow-lg shadow-primary/10"
@@ -110,10 +236,9 @@ function Profile() {
               </p>
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleSaveChanges} className="flex flex-col gap-12 max-w-2xl">
-              {/* Personal Information Section */}
-              {activeTab === "personal" && (
+            {/* Personal Information Section */}
+            {activeTab === "personal" && (
+              <form onSubmit={handleSavePersonalInfo} className="flex flex-col gap-12 max-w-2xl">
                 <section>
                   <div className="flex items-center gap-2 mb-6">
                     <span className="h-px flex-1 bg-[#283039]"></span>
@@ -160,23 +285,64 @@ function Profile() {
                           onChange={handleInputChange}
                           className="w-full rounded-lg border border-[#3b4754] bg-[#1c2127] text-white focus:border-primary focus:ring-1 focus:ring-primary/20 h-12 px-4 transition-all outline-none"
                           placeholder="+1 (234) 567-890"
+                          disabled
                         />
                       </div>
                     </div>
                   </div>
                 </section>
-              )}
 
-              {/* Security Section */}
-              {activeTab === "security" && (
+                {/* Action Buttons */}
+                <div className="flex items-center justify-end gap-4 pt-4 border-t border-[#283039]">
+                  <button
+                    type="button"
+                    className="px-6 py-3 text-sm font-bold text-[#9dabb9] hover:text-white transition-colors uppercase tracking-widest"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-10 py-3 bg-white text-black font-black rounded-lg hover:bg-gray-200 transition-all uppercase tracking-widest shadow-xl"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Security Section */}
+            {activeTab === "security" && (
+              <form onSubmit={handlePasswordChange} className="flex flex-col gap-12 max-w-2xl">
                 <section>
                   <div className="flex items-center gap-2 mb-6">
                     <span className="h-px flex-1 bg-[#283039]"></span>
                     <h2 className="text-white text-sm font-bold uppercase tracking-widest px-2">
-                      Security
+                      Change Password
                     </h2>
                     <span className="h-px flex-1 bg-[#283039]"></span>
                   </div>
+
+                  {/* Success Message */}
+                  {passwordSuccess && (
+                    <div className="mb-6 bg-green-500/10 border border-green-500/20 p-4 rounded-lg flex gap-3">
+                      <FaCheckCircle className="text-green-500 text-lg flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-green-500 font-semibold">Password changed successfully!</p>
+                        <p className="text-sm text-[#9dabb9] mt-1">Your password has been updated.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Error Message */}
+                  {passwordError && (
+                    <div className="mb-6 bg-red-500/10 border border-red-500/20 p-4 rounded-lg flex gap-3">
+                      <FaExclamationCircle className="text-red-500 text-lg flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-red-500 font-semibold">Failed to change password</p>
+                        <p className="text-sm text-[#9dabb9] mt-1">{passwordError}</p>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 gap-6">
                     {/* Current Password */}
@@ -184,47 +350,86 @@ function Profile() {
                       <label className="text-white text-sm font-medium">Current Password</label>
                       <div className="relative">
                         <input
-                          type={showPassword ? "text" : "password"}
+                          type={showPassword.current ? "text" : "password"}
                           name="currentPassword"
                           value={formData.currentPassword}
                           onChange={handleInputChange}
-                          className="w-full rounded-lg border border-[#3b4754] bg-[#1c2127] text-white focus:border-primary focus:ring-1 focus:ring-primary/20 h-12 px-4 pr-12 transition-all outline-none"
+                          className={`w-full rounded-lg border ${
+                            validationErrors.currentPassword 
+                              ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" 
+                              : "border-[#3b4754] focus:border-primary focus:ring-primary/20"
+                          } bg-[#1c2127] text-white focus:ring-1 h-12 px-4 pr-12 transition-all outline-none`}
                           placeholder="Enter current password"
                         />
                         <button
                           type="button"
-                          onClick={() => setShowPassword(!showPassword)}
+                          onClick={() => togglePasswordVisibility("current")}
                           className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9dabb9] hover:text-white"
                         >
-                          {showPassword ? <FaEyeSlash /> : <FaEye />}
+                          {showPassword.current ? <FaEyeSlash /> : <FaEye />}
                         </button>
                       </div>
+                      {validationErrors.currentPassword && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.currentPassword}</p>
+                      )}
                     </div>
 
                     {/* New Password Fields */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="flex flex-col gap-2">
                         <label className="text-white text-sm font-medium">New Password</label>
-                        <input
-                          type="password"
-                          name="newPassword"
-                          value={formData.newPassword}
-                          onChange={handleInputChange}
-                          className="w-full rounded-lg border border-[#3b4754] bg-[#1c2127] text-white focus:border-primary focus:ring-1 focus:ring-primary/20 h-12 px-4 transition-all outline-none"
-                          placeholder="Min. 8 characters"
-                        />
+                        <div className="relative">
+                          <input
+                            type={showPassword.new ? "text" : "password"}
+                            name="newPassword"
+                            value={formData.newPassword}
+                            onChange={handleInputChange}
+                            className={`w-full rounded-lg border ${
+                              validationErrors.newPassword 
+                                ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" 
+                                : "border-[#3b4754] focus:border-primary focus:ring-primary/20"
+                            } bg-[#1c2127] text-white focus:ring-1 h-12 px-4 pr-12 transition-all outline-none`}
+                            placeholder="Min. 8 characters"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => togglePasswordVisibility("new")}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9dabb9] hover:text-white"
+                          >
+                            {showPassword.new ? <FaEyeSlash /> : <FaEye />}
+                          </button>
+                        </div>
+                        {validationErrors.newPassword && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.newPassword}</p>
+                        )}
                       </div>
 
                       <div className="flex flex-col gap-2">
                         <label className="text-white text-sm font-medium">Confirm New Password</label>
-                        <input
-                          type="password"
-                          name="confirmPassword"
-                          value={formData.confirmPassword}
-                          onChange={handleInputChange}
-                          className="w-full rounded-lg border border-[#3b4754] bg-[#1c2127] text-white focus:border-primary focus:ring-1 focus:ring-primary/20 h-12 px-4 transition-all outline-none"
-                          placeholder="Repeat new password"
-                        />
+                        <div className="relative">
+                          <input
+                            type={showPassword.confirm ? "text" : "password"}
+                            name="confirmPassword"
+                            value={formData.confirmPassword}
+                            onChange={handleInputChange}
+                            className={`w-full rounded-lg border ${
+                              validationErrors.confirmPassword 
+                                ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" 
+                                : "border-[#3b4754] focus:border-primary focus:ring-primary/20"
+                            } bg-[#1c2127] text-white focus:ring-1 h-12 px-4 pr-12 transition-all outline-none`}
+                            placeholder="Repeat new password"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => togglePasswordVisibility("confirm")}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9dabb9] hover:text-white"
+                          >
+                            {showPassword.confirm ? <FaEyeSlash /> : <FaEye />}
+                          </button>
+                        </div>
+                        {validationErrors.confirmPassword && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.confirmPassword}</p>
+                        )}
                       </div>
                     </div>
 
@@ -237,11 +442,41 @@ function Profile() {
                     </div>
                   </div>
                 </section>
-              )}
 
-              {/* Notifications Section */}
-              {activeTab === "notifications" && (
-                <section>
+                {/* Action Buttons */}
+                <div className="flex items-center justify-end gap-4 pt-4 border-t border-[#283039]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({
+                        ...formData,
+                        currentPassword: "",
+                        newPassword: "",
+                        confirmPassword: ""
+                      });
+                      setValidationErrors({});
+                      setPasswordError("");
+                      setPasswordSuccess(false);
+                    }}
+                    className="px-6 py-3 text-sm font-bold text-[#9dabb9] hover:text-white transition-colors uppercase tracking-widest"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-10 py-3 bg-white text-black font-black rounded-lg hover:bg-gray-200 transition-all uppercase tracking-widest shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? "Updating..." : "Change Password"}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Notifications Section */}
+            {activeTab === "notifications" && (
+              <section className="flex flex-col gap-12 max-w-2xl">
+                <div>
                   <div className="flex items-center gap-2 mb-6">
                     <span className="h-px flex-1 bg-[#283039]"></span>
                     <h2 className="text-white text-sm font-bold uppercase tracking-widest px-2">
@@ -269,12 +504,14 @@ function Profile() {
                       </div>
                     ))}
                   </div>
-                </section>
-              )}
+                </div>
+              </section>
+            )}
 
-              {/* Billing Section */}
-              {activeTab === "billing" && (
-                <section>
+            {/* Billing Section */}
+            {activeTab === "billing" && (
+              <section className="flex flex-col gap-12 max-w-2xl">
+                <div>
                   <div className="flex items-center gap-2 mb-6">
                     <span className="h-px flex-1 bg-[#283039]"></span>
                     <h2 className="text-white text-sm font-bold uppercase tracking-widest px-2">
@@ -299,28 +536,12 @@ function Profile() {
                       <p className="text-[#9dabb9] text-sm">Your booking history will appear here.</p>
                     </div>
                   </div>
-                </section>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-4 pt-4 border-t border-[#283039]">
-                <button
-                  type="button"
-                  className="px-6 py-3 text-sm font-bold text-[#9dabb9] hover:text-white transition-colors uppercase tracking-widest"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-10 py-3 bg-white text-black font-black rounded-lg hover:bg-gray-200 transition-all uppercase tracking-widest shadow-xl"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </form>
+                </div>
+              </section>
+            )}
 
             {/* Delete Account Section */}
-            <div className="mt-8 p-6 rounded-xl border border-red-500/10 bg-red-500/5">
+            <div className="mt-8 p-6 rounded-xl border border-red-500/10 bg-red-500/5 max-w-2xl">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-white font-bold">Delete Account</h3>
@@ -330,7 +551,7 @@ function Profile() {
                 </div>
                 <button
                   onClick={() => setShowDeleteModal(true)}
-                  className="px-4 py-2 text-sm font-bold text-red-500 border border-red-500/20 rounded-lg hover:bg-red-500 hover:text-white transition-all"
+                  className="px-4 py-2 text-sm font-bold text-red-500 border border-red-500/20 rounded-lg hover:bg-red-500 hover:text-white transition-all whitespace-nowrap"
                 >
                   Delete Account
                 </button>

@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { loginUser, registerUser, verifyOtp, resendOtp } from "./authThunks";
+import { loginUser, registerUser, verifyOtp, resendOtp, changePassword } from "./authThunks";
 
 const initialState = {
   user: null,
@@ -17,7 +17,7 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
-      localStorage.removeItem("token");
+      localStorage.removeItem("access_token");
     },
   },
   extraReducers: (builder) => {
@@ -32,7 +32,7 @@ const authSlice = createSlice({
         state.token = action.payload.access_token;
         state.user = action.payload.user;
         state.isAuthenticated = true;
-        localStorage.setItem("token", action.payload.access_token);
+        localStorage.setItem("access_token", action.payload.access_token);
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
@@ -62,7 +62,7 @@ const authSlice = createSlice({
         state.user = action.payload.user;
         state.token = action.payload.access_token; 
         state.isAuthenticated = true;
-        localStorage.setItem("token", action.payload.access_token);
+        localStorage.setItem("access_token", action.payload.access_token);
       })
       .addCase(verifyOtp.rejected, (state, action) => {
         state.loading = false;
