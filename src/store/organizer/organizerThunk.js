@@ -26,25 +26,3 @@ export const submitOrganizerApplication = createAsyncThunk(
   }
 );
 
-export const fetchOrganizerApplication = createAsyncThunk(
-  "organizer/fetchApplication",
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await api.get(
-        "/organizers/my-application",
-        {
-          withCredentials: true,
-        }
-      );
-
-      return response.data;
-
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.detail ||
-        error.response?.data?.message ||
-        "Failed to fetch organizer application"
-      );
-    }
-  }
-);

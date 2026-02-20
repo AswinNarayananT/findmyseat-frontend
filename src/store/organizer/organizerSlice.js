@@ -1,7 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import {
   submitOrganizerApplication,
-  fetchOrganizerApplication,
 } from "./organizerThunk";
 
 
@@ -40,22 +39,6 @@ const organizerSlice = createSlice({
         state.application = action.payload;
       })
       .addCase(submitOrganizerApplication.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-
-      // -------------------------
-      // FETCH APPLICATION
-      // -------------------------
-      .addCase(fetchOrganizerApplication.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchOrganizerApplication.fulfilled, (state, action) => {
-        state.loading = false;
-        state.application = action.payload;
-      })
-      .addCase(fetchOrganizerApplication.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

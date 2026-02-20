@@ -8,7 +8,8 @@ import AdminDashboard from "../pages/Admin/AdminDashboard";
 import OrganizerApplication from "../pages/organizer/OrganizerApplication";
 import ApplicationSuccess from "../pages/organizer/Applicationsuccess";
 import AdminBase from "../pages/Admin/Adminbase";
-import OrganizerApplication from "../pages/organizer/OrganizerApplication";
+import OrganizerApplications from "../pages/Admin/OrganizerApplications";
+import OrganizerApplicationDetail from "../pages/Admin/OrganizerApplicationDetail";
 
 function AppRouter() {
   return (
@@ -30,8 +31,10 @@ function AppRouter() {
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminBase />}>
           <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="applications" element={<OrganizerApplication />} />
+          <Route path="organizer-applications" element={<OrganizerApplications />} />
         </Route>
+        <Route  path="/admin/organizer-applications/:id"element={<OrganizerApplicationDetail />} />
+
 
       </Routes>
     </BrowserRouter>

@@ -1,11 +1,24 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { adminLogin, adminLogout } from "./adminAuthThunks";
+import {
+  adminLogin,
+  adminLogout,
+  fetchOrganizerApplications,
+  fetchOrganizerApplicationDetail,
+} from "./adminAuthThunks";
 
 const initialState = {
+  // ─── Auth State ─────────────────────────
   admin: null,
-  loading: false,
-  error: null,
   isAuthenticated: false,
+  authLoading: false,
+  authError: null,
+
+  // ─── Organizer Applications State ───────
+  applications: [],
+  applicationDetail: null,
+  listLoading: false,
+  detailLoading: false,
+  organizerError: null,
 };
 
 const adminAuthSlice = createSlice({
@@ -15,25 +28,53 @@ const adminAuthSlice = createSlice({
   extraReducers: (builder) => {
     builder
 
-      // Login
+      // ADMIN LOGIN
       .addCase(adminLogin.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+        state.authLoading = true;
+        state.authError = null;
       })
       .addCase(adminLogin.fulfilled, (state, action) => {
-        state.loading = false;
+        state.authLoading = false;
         state.admin = action.payload.user;
         state.isAuthenticated = true;
       })
       .addCase(adminLogin.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
+        state.authLoading = false;
+        state.authError = action.payload;
       })
 
-      // Logout
+      // ADMIN LOGOUT
       .addCase(adminLogout.fulfilled, (state) => {
         state.admin = null;
         state.isAuthenticated = false;
+      })
+
+      // FETCH APPLICATION LIST
+      .addCase(fetchOrganizerApplications.pending, (state) => {
+        state.listLoading = true;
+        state.organizerError = null;
+      })
+      .addCase(fetchOrganizerApplications.fulfilled, (state, action) => {
+        state.listLoading = false;
+        state.applications = action.payload;
+      })
+      .addCase(fetchOrganizerApplications.rejected, (state, action) => {
+        state.listLoading = false;
+        state.organizerError = action.payload;
+      })
+
+      // FETCH APPLICATION DETAIL
+      .addCase(fetchOrganizerApplicationDetail.pending, (state) => {
+        state.detailLoading = true;
+        state.organizerError = null;
+      })
+      .addCase(fetchOrganizerApplicationDetail.fulfilled, (state, action) => {
+        state.detailLoading = false;
+        state.applicationDetail = action.payload;
+      })
+      .addCase(fetchOrganizerApplicationDetail.rejected, (state, action) => {
+        state.detailLoading = false;
+        state.organizerError = action.payload;
       });
   },
 });

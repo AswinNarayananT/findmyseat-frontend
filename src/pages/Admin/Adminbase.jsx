@@ -17,7 +17,7 @@ import {
 
 const NAV_ITEMS = [
   { id: "overview", path: "/admin/dashboard", icon: FaTachometerAlt, label: "Overview" },
-  { id: "applications", path: "/admin/applications", icon: FaFileAlt, label: "Applications" },
+  { id: "applications", path: "/admin/organizer-applications", icon: FaFileAlt, label: "Applications" },
   { id: "settings", path: "/admin/settings", icon: FaCog, label: "Settings" },
 ];
 
