@@ -87,7 +87,7 @@ function Navbar() {
               </Link>
 
               <Link
-                to="/register"
+                to="/login"
                 className="hidden sm:block px-4 py-2 text-sm font-semibold text-white bg-[#1E1E1E] border border-[#282e39] rounded-lg hover:bg-[#282e39] transition-all cursor-pointer"
               >
                 Register

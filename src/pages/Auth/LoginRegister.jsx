@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 
@@ -41,9 +42,12 @@ function LoginRegister() {
             <div>
               <div className="flex justify-between">
                 <label className="text-sm font-medium">Password</label>
-                <a className="text-xs text-gray-500 hover:text-white">
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-gray-500 hover:text-white transition"
+                >
                   Forgot?
-                </a>
+                </Link>
               </div>
               <input
                 type="password"

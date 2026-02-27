@@ -165,6 +165,16 @@ const onSubmit = async (data) => {
                 type="password"
                 className="mt-2 w-full h-12 rounded-lg bg-input-dark border border-border-dark px-4"
               />
+              {isLogin && (
+                <div className="flex justify-end mt-2">
+                  <span
+                    onClick={() => navigate("/forgot-password")}
+                    className="text-xs text-primary cursor-pointer hover:underline"
+                  >
+                    Forgot Password?
+                  </span>
+                </div>
+              )}
               {errors.password && (
                 <p className="text-red-500 text-xs">
                   {errors.password.message}
@@ -180,6 +190,7 @@ const onSubmit = async (data) => {
                   type="password"
                   className="mt-2 w-full h-12 rounded-lg bg-input-dark border border-border-dark px-4"
                 />
+                
                 {errors.confirm_password && (
                   <p className="text-red-500 text-xs">
                     {errors.confirm_password.message}

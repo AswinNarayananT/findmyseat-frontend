@@ -95,3 +95,23 @@ export const changePassword = createAsyncThunk(
 );
 
 
+export const updatePersonalInfo = createAsyncThunk(
+  "auth/updatePersonalInfo",
+  async ({ full_name, phone }, { rejectWithValue }) => {
+    try {
+      const payload = {};
+
+      if (full_name !== undefined) payload.full_name = full_name;
+      if (phone !== undefined) payload.phone = phone;
+
+      const response = await api.patch("/auth/update-profile", payload);
+
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.detail || "Failed to update profile"
+      );
+    }
+  }
+);
+

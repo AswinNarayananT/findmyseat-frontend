@@ -10,6 +10,10 @@ import ApplicationSuccess from "../pages/organizer/Applicationsuccess";
 import AdminBase from "../pages/Admin/Adminbase";
 import OrganizerApplications from "../pages/Admin/OrganizerApplications";
 import OrganizerApplicationDetail from "../pages/Admin/OrganizerApplicationDetail";
+import ForgotPassword from "../pages/Auth/ForgotPassword";
+import ResetPassword from "../pages/Auth/ResetPassword";
+
+
 
 function AppRouter() {
   return (
@@ -21,6 +25,8 @@ function AppRouter() {
         <Route path="/login" element={<Auth />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
 
         {/* Organizer Routes */}
