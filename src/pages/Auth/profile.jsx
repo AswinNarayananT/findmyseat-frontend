@@ -2,19 +2,19 @@ import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { logout } from "../../store/auth/authSlice";
-import { changePassword } from "../../store/auth/authThunks";
+import { changePassword, updatePersonalInfo } from "../../store/auth/authThunks";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
-import { 
-  FaUser, 
-  FaShieldAlt, 
-  FaBell, 
-  FaCreditCard, 
-  FaEye, 
+import {
+  FaUser,
+  FaShieldAlt,
+  FaBell,
+  FaCreditCard,
+  FaEye,
   FaEyeSlash,
   FaInfoCircle,
   FaCheckCircle,
-  FaExclamationCircle 
+  FaExclamationCircle
 } from "react-icons/fa";
 
 function Profile() {
@@ -85,7 +85,7 @@ function Profile() {
   // Handle password change
   const handlePasswordChange = async (e) => {
     e.preventDefault();
-    
+
     // Reset states
     setPasswordSuccess(false);
     setPasswordError("");
@@ -116,8 +116,8 @@ function Profile() {
     }
 
     // Check if current password is same as new password
-    if (formData.currentPassword && formData.newPassword && 
-        formData.currentPassword === formData.newPassword) {
+    if (formData.currentPassword && formData.newPassword &&
+      formData.currentPassword === formData.newPassword) {
       errors.newPassword = "New password must be different from current password";
     }
 
@@ -138,7 +138,7 @@ function Profile() {
       // Success
       setPasswordSuccess(true);
       setPasswordError("");
-      
+
       // Clear password fields
       setFormData({
         ...formData,
@@ -159,10 +159,32 @@ function Profile() {
   };
 
   // Handle personal info save
-  const handleSavePersonalInfo = (e) => {
+  const handleSavePersonalInfo = async (e) => {
     e.preventDefault();
-    console.log("Saving personal info:", formData);
-    // TODO: Implement personal info update API call
+
+    const trimmedName = formData.fullName.trim();
+    const trimmedPhone = formData.phone.trim();
+
+    const nameChanged = trimmedName !== user.full_name;
+    const phoneChanged = trimmedPhone !== user.phone;
+
+    if (!nameChanged && !phoneChanged) {
+      console.log("No changes detected. Skipping API call.");
+      return;
+    }
+
+    const updatePayload = {};
+
+    if (nameChanged) updatePayload.full_name = trimmedName;
+    if (phoneChanged) updatePayload.phone = trimmedPhone;
+
+    const result = await dispatch(updatePersonalInfo(updatePayload));
+
+    if (updatePersonalInfo.fulfilled.match(result)) {
+      console.log("Profile updated successfully");
+    } else {
+      console.error("Update failed:", result.payload);
+    }
   };
 
   const handleDeleteAccount = () => {
@@ -211,11 +233,10 @@ function Profile() {
                         setPasswordError("");
                         setValidationErrors({});
                       }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                        activeTab === item.id
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === item.id
                           ? "bg-primary text-white shadow-lg shadow-primary/10"
                           : "text-[#9dabb9] hover:text-white hover:bg-white/5"
-                      }`}
+                        }`}
                     >
                       <Icon className="text-lg" />
                       <span className="text-sm font-medium">{item.label}</span>
@@ -238,7 +259,10 @@ function Profile() {
 
             {/* Personal Information Section */}
             {activeTab === "personal" && (
-              <form onSubmit={handleSavePersonalInfo} className="flex flex-col gap-12 max-w-2xl">
+              <form
+                onSubmit={handleSavePersonalInfo}
+                className="flex flex-col gap-12 max-w-2xl"
+              >
                 <section>
                   <div className="flex items-center gap-2 mb-6">
                     <span className="h-px flex-1 bg-[#283039]"></span>
@@ -251,7 +275,9 @@ function Profile() {
                   <div className="grid grid-cols-1 gap-6">
                     {/* Full Name */}
                     <div className="flex flex-col gap-2">
-                      <label className="text-white text-sm font-medium">Full Name</label>
+                      <label className="text-white text-sm font-medium">
+                        Full Name
+                      </label>
                       <input
                         type="text"
                         name="fullName"
@@ -264,20 +290,28 @@ function Profile() {
 
                     {/* Email and Phone */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                      {/* Email - Read Only */}
                       <div className="flex flex-col gap-2">
-                        <label className="text-white text-sm font-medium">Email Address</label>
+                        <label className="text-white text-sm font-medium">
+                          Email Address
+                        </label>
                         <input
                           type="email"
-                          name="email"
                           value={formData.email}
-                          onChange={handleInputChange}
-                          className="w-full rounded-lg border border-[#3b4754] bg-[#1c2127] text-white focus:border-primary focus:ring-1 focus:ring-primary/20 h-12 px-4 transition-all outline-none"
-                          placeholder="name@domain.com"
+                          readOnly
+                          className="w-full rounded-lg border border-[#3b4754] bg-[#14181d] text-gray-400 h-12 px-4 cursor-not-allowed"
                         />
+                        <p className="text-xs text-gray-500">
+                          Email cannot be changed.
+                        </p>
                       </div>
 
+                      {/* Phone - Editable */}
                       <div className="flex flex-col gap-2">
-                        <label className="text-white text-sm font-medium">Phone Number</label>
+                        <label className="text-white text-sm font-medium">
+                          Phone Number
+                        </label>
                         <input
                           type="tel"
                           name="phone"
@@ -285,7 +319,6 @@ function Profile() {
                           onChange={handleInputChange}
                           className="w-full rounded-lg border border-[#3b4754] bg-[#1c2127] text-white focus:border-primary focus:ring-1 focus:ring-primary/20 h-12 px-4 transition-all outline-none"
                           placeholder="+1 (234) 567-890"
-                          disabled
                         />
                       </div>
                     </div>
@@ -300,6 +333,7 @@ function Profile() {
                   >
                     Cancel
                   </button>
+
                   <button
                     type="submit"
                     className="px-10 py-3 bg-white text-black font-black rounded-lg hover:bg-gray-200 transition-all uppercase tracking-widest shadow-xl"
@@ -354,11 +388,10 @@ function Profile() {
                           name="currentPassword"
                           value={formData.currentPassword}
                           onChange={handleInputChange}
-                          className={`w-full rounded-lg border ${
-                            validationErrors.currentPassword 
-                              ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" 
+                          className={`w-full rounded-lg border ${validationErrors.currentPassword
+                              ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
                               : "border-[#3b4754] focus:border-primary focus:ring-primary/20"
-                          } bg-[#1c2127] text-white focus:ring-1 h-12 px-4 pr-12 transition-all outline-none`}
+                            } bg-[#1c2127] text-white focus:ring-1 h-12 px-4 pr-12 transition-all outline-none`}
                           placeholder="Enter current password"
                         />
                         <button
@@ -384,11 +417,10 @@ function Profile() {
                             name="newPassword"
                             value={formData.newPassword}
                             onChange={handleInputChange}
-                            className={`w-full rounded-lg border ${
-                              validationErrors.newPassword 
-                                ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" 
+                            className={`w-full rounded-lg border ${validationErrors.newPassword
+                                ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
                                 : "border-[#3b4754] focus:border-primary focus:ring-primary/20"
-                            } bg-[#1c2127] text-white focus:ring-1 h-12 px-4 pr-12 transition-all outline-none`}
+                              } bg-[#1c2127] text-white focus:ring-1 h-12 px-4 pr-12 transition-all outline-none`}
                             placeholder="Min. 8 characters"
                           />
                           <button
@@ -412,11 +444,10 @@ function Profile() {
                             name="confirmPassword"
                             value={formData.confirmPassword}
                             onChange={handleInputChange}
-                            className={`w-full rounded-lg border ${
-                              validationErrors.confirmPassword 
-                                ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" 
+                            className={`w-full rounded-lg border ${validationErrors.confirmPassword
+                                ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
                                 : "border-[#3b4754] focus:border-primary focus:ring-primary/20"
-                            } bg-[#1c2127] text-white focus:ring-1 h-12 px-4 pr-12 transition-all outline-none`}
+                              } bg-[#1c2127] text-white focus:ring-1 h-12 px-4 pr-12 transition-all outline-none`}
                             placeholder="Repeat new password"
                           />
                           <button
