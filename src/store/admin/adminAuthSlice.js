@@ -4,6 +4,7 @@ import {
   adminLogout,
   fetchOrganizerApplications,
   fetchOrganizerApplicationDetail,
+  updateOrganizerApplicationStatus,
 } from "./adminAuthThunks";
 
 const initialState = {
@@ -43,12 +44,6 @@ const adminAuthSlice = createSlice({
         state.authError = action.payload;
       })
 
-      // ADMIN LOGOUT
-      .addCase(adminLogout.fulfilled, (state) => {
-        state.admin = null;
-        state.isAuthenticated = false;
-      })
-
       // FETCH APPLICATION LIST
       .addCase(fetchOrganizerApplications.pending, (state) => {
         state.listLoading = true;
@@ -75,6 +70,26 @@ const adminAuthSlice = createSlice({
       .addCase(fetchOrganizerApplicationDetail.rejected, (state, action) => {
         state.detailLoading = false;
         state.organizerError = action.payload;
+      })
+
+      // UPDATE ORGANIZER APPLICATION STATUS
+      .addCase(updateOrganizerApplicationStatus.pending, (state) => {
+        state.detailLoading = true;
+        state.organizerError = null;
+      })
+      .addCase(updateOrganizerApplicationStatus.fulfilled, (state, action) => {
+        state.detailLoading = false;
+        state.applicationDetail = action.payload;
+      })
+      .addCase(updateOrganizerApplicationStatus.rejected, (state, action) => {
+        state.detailLoading = false;
+        state.organizerError = action.payload;
+      })
+      
+      // ADMIN LOGOUT
+      .addCase(adminLogout.fulfilled, (state) => {
+        state.admin = null;
+        state.isAuthenticated = false;
       });
   },
 });

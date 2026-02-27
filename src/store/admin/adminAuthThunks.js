@@ -55,19 +55,21 @@ export const fetchOrganizerApplicationDetail = createAsyncThunk(
 
 export const updateOrganizerApplicationStatus = createAsyncThunk(
   "adminAuth/updateOrganizerStatus",
-  async ({ id, status }, { rejectWithValue }) => {
+  async ({ id, status, rejection_reason }, { rejectWithValue }) => {
     try {
       const response = await api.patch(
         `/admin/organizer-applications/${id}`,
-        { status }
+        {
+          status,
+          rejection_reason,
+        }
       );
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.detail);
+      return rejectWithValue(error.response?.data);
     }
   }
 );
-
 
 export const adminLogout = createAsyncThunk(
   "adminAuth/logout",
