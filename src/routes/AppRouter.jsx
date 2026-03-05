@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "../pages/Home";
 import Auth from "../pages/Auth/Auth";
 import VerifyOtp from "../pages/Auth/VerifyOtp";
-import Profile from "../pages/Auth/Profile";
+import Profile from "../pages/Auth/profile";
 import AdminLogin from "../pages/Admin/AdminLogin";
 import AdminDashboard from "../pages/Admin/AdminDashboard";
 import OrganizerApplication from "../pages/organizer/OrganizerApplication";
@@ -12,6 +12,7 @@ import OrganizerApplications from "../pages/Admin/OrganizerApplications";
 import OrganizerApplicationDetail from "../pages/Admin/OrganizerApplicationDetail";
 import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
+import CreateEvent from "../pages/event/CreateEvent";
 
 
 
@@ -32,6 +33,7 @@ function AppRouter() {
         {/* Organizer Routes */}
         <Route path="/organizer-application" element={<OrganizerApplication />} />
         <Route path="/application-success" element={<ApplicationSuccess />} />
+        <Route path="/create-event" element={<CreateEvent />} />
 
         {/* Admin Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />
