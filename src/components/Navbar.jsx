@@ -27,7 +27,7 @@ function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-[#282e39] bg-background-dark/80 backdrop-blur-md">
       <div className="flex items-center justify-between px-6 md:px-10 py-4 max-w-[1440px] mx-auto">
-        
+
         {/* Logo Section */}
         <Link to="/" className="flex items-center gap-3 text-white">
           <div className="size-8">
@@ -44,19 +44,20 @@ function Navbar() {
 
         {/* Navigation Links */}
         <nav className="hidden md:flex gap-8 items-center">
+
           <Link
-            to="/events"
+            to="/public-events"
             className="text-sm font-medium text-[#9ca6ba] hover:text-white transition-colors cursor-pointer"
           >
             Events
           </Link>
 
-          <Link
+          {/* <Link
             to="/venues"
             className="text-sm font-medium text-[#9ca6ba] hover:text-white transition-colors cursor-pointer"
           >
             Venues
-          </Link>
+          </Link> */}
 
           <Link
             to="/about"
@@ -66,6 +67,15 @@ function Navbar() {
           </Link>
 
           {isAuthenticated && (
+            <Link
+              to="/my-events"
+              className="text-sm font-medium text-[#9ca6ba] hover:text-white transition-colors cursor-pointer"
+            >
+              My Events
+            </Link>
+          )}
+
+          {isAuthenticated && (
             <button
               onClick={handleAddEvent}
               className="text-sm font-semibold text-primary hover:text-white transition-colors duration-200 cursor-pointer"
@@ -73,6 +83,7 @@ function Navbar() {
               Add Event
             </button>
           )}
+
         </nav>
 
         {/* Auth Section */}

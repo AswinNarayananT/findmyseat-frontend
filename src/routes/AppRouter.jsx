@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Toaster } from "react-hot-toast"
 import Home from "../pages/Home";
 import Auth from "../pages/Auth/Auth";
 import VerifyOtp from "../pages/Auth/VerifyOtp";
@@ -13,12 +14,27 @@ import OrganizerApplicationDetail from "../pages/Admin/OrganizerApplicationDetai
 import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
 import CreateEvent from "../pages/event/CreateEvent";
-
+import CreateEventShow from "../pages/event/CreateEventShow";
+import MyEvents from "../pages/event/MyEvents";
+import SeatLayoutBuilder from "../pages/event/SeatLayoutBuilder";
+import EventDetailPage from "../pages/event/EventDetailPage";
+import EventDiscoveryPage from "../pages/user/EventDiscoveryPage";
+import BookingPage from "../pages/user/BookingPage";
+import SeatSelectionPage from "../pages/user/SeatSelectionPage";
 
 
 function AppRouter() {
   return (
     <BrowserRouter>
+            <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: "#1f2937",
+            color: "#fff"
+          }
+        }}
+      />
       <Routes>
 
         {/* User Routes */}
@@ -28,12 +44,21 @@ function AppRouter() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/public-events" element={<EventDiscoveryPage />} />
+        <Route path="/booking/event/:eventId" element={<BookingPage />} />
+        <Route path="/booking/seats/:showId" element={<SeatSelectionPage />} />
+
 
 
         {/* Organizer Routes */}
         <Route path="/organizer-application" element={<OrganizerApplication />} />
         <Route path="/application-success" element={<ApplicationSuccess />} />
+        <Route path="/my-events" element={<MyEvents />} />
         <Route path="/create-event" element={<CreateEvent />} />
+        <Route path="/create-event-show/:eventId" element={<CreateEventShow />} />
+        <Route path="/event/:eventId" element={<EventDetailPage />} />
+        <Route path="/event-layout/:eventId" element={<SeatLayoutBuilder />} />
+
 
         {/* Admin Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />
