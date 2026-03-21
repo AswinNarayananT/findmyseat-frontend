@@ -9,18 +9,20 @@ import {
   fetchActiveEvents,
   fetchPublicEventDetails,
   fetchShowLayout,
+  confirmAndLockSeats,
+  verifyBookingPayment,
+  checkActiveUserLock
 } from "./eventThunk";
 
 const initialState = {
   events: [],
   event: null,
   eventShows: [],
-
   layout: null,
   seats: [],
   selectedSeats: [],
   lockedSeats: [],
-
+  activeLock: null,
   loading: false,
   error: null,
 };
@@ -28,10 +30,16 @@ const initialState = {
 const eventSlice = createSlice({
   name: "event",
   initialState,
-  reducers: {},
+  reducers: {
+    clearSelectedSeats: (state) => {
+      state.selectedSeats = [];
+    },
+    clearEventError: (state) => {
+      state.error = null;
+    }
+  },
   extraReducers: (builder) => {
     builder
-
       .addCase(createEvent.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -92,11 +100,9 @@ const eventSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-
-      .addCase(createSeatLayout.fulfilled, (state, action) => {
+      .addCase(createSeatLayout.fulfilled, (state) => {
         state.loading = false;
       })
-
       .addCase(createSeatLayout.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
@@ -107,13 +113,12 @@ const eventSlice = createSlice({
       })
       .addCase(fetchActiveEvents.fulfilled, (state, action) => {
         state.loading = false;
-        state.events = action.payload; // Store the active events here
+        state.events = action.payload;
       })
       .addCase(fetchActiveEvents.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      
 
       .addCase(fetchPublicEventDetails.pending, (state) => {
         state.loading = true;
@@ -123,11 +128,10 @@ const eventSlice = createSlice({
         state.loading = false;
         state.event = action.payload;
         state.eventShows = action.payload.shows || [];
-
         state.layout = null;
         state.seats = [];
       })
-      
+
       .addCase(fetchShowLayout.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -141,8 +145,47 @@ const eventSlice = createSlice({
       .addCase(fetchShowLayout.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+
+      .addCase(confirmAndLockSeats.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(confirmAndLockSeats.fulfilled, (state, action) => {
+        state.loading = false;
+        state.activeLock = action.payload;
+      })
+      .addCase(confirmAndLockSeats.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      .addCase(checkActiveUserLock.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(checkActiveUserLock.fulfilled, (state, action) => {
+        state.loading = false;
+        state.activeLock = action.payload;
+      })
+      .addCase(checkActiveUserLock.rejected, (state, action) => {
+        state.loading = false;
+        state.activeLock = { has_active_lock: false };
+      })
+
+      .addCase(verifyBookingPayment.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(verifyBookingPayment.fulfilled, (state) => {
+        state.loading = false;
+        state.activeLock = null;
+        state.selectedSeats = [];
+      })
+      .addCase(verifyBookingPayment.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   },
 });
 
+export const { clearSelectedSeats, clearEventError } = eventSlice.actions;
 export default eventSlice.reducer;

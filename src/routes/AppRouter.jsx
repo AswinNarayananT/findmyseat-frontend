@@ -21,6 +21,7 @@ import EventDetailPage from "../pages/event/EventDetailPage";
 import EventDiscoveryPage from "../pages/user/EventDiscoveryPage";
 import BookingPage from "../pages/user/BookingPage";
 import SeatSelectionPage from "../pages/user/SeatSelectionPage";
+import PaymentPage from "../pages/event/PaymentPage";
 
 
 function AppRouter() {
@@ -47,6 +48,7 @@ function AppRouter() {
         <Route path="/public-events" element={<EventDiscoveryPage />} />
         <Route path="/booking/event/:eventId" element={<BookingPage />} />
         <Route path="/booking/seats/:showId" element={<SeatSelectionPage />} />
+        <Route path="/booking/checkout/:showId"  element={<PaymentPage /> } />
 
 
 

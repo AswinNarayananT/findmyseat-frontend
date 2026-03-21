@@ -168,3 +168,50 @@ export const fetchShowLayout = createAsyncThunk(
     }
   }
 );
+
+// 1. Confirm and Lock Seats
+export const confirmAndLockSeats = createAsyncThunk(
+  "event/confirmAndLockSeats",
+  async (payload, { rejectWithValue }) => {
+    try {
+      // payload: { show_id: "uuid", seat_ids: ["uuid1", "uuid2"] }
+      const res = await api.post("/public/events/booking/confirm-booking", payload);
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.detail || "Failed to lock seats"
+      );
+    }
+  }
+);
+
+// 2. Verify Razorpay Payment
+export const verifyBookingPayment = createAsyncThunk(
+  "event/verifyBookingPayment",
+  async (paymentData, { rejectWithValue }) => {
+    try {
+      // paymentData: { razorpay_order_id, razorpay_payment_id, razorpay_signature }
+      const res = await api.post("/public/events/booking/verify-payment", paymentData);
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.detail || "Payment verification failed"
+      );
+    }
+  }
+);
+
+// 3. Check for Active User Locks
+export const checkActiveUserLock = createAsyncThunk(
+  "event/checkActiveUserLock",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get("/public/events/booking/my-active-lock");
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.detail || "Error checking active locks"
+      );
+    }
+  }
+);
