@@ -27,6 +27,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import AdminRoute from "./AdminRoute";
 import Profile from "../pages/profile/profile";
+import VerifyTicketsPage from "../pages/organizer/VerifyTicketsPage";
 
 function AppRouter() {
   return (
@@ -70,6 +71,7 @@ function AppRouter() {
           <Route path="/create-event" element={<CreateEvent />} />
           <Route path="/create-event-show/:eventId" element={<CreateEventShow />} />
           <Route path="/event-layout/:eventId" element={<SeatLayoutBuilder />} />
+          <Route path="/organizer/verify-tickets/:showId" element={<VerifyTicketsPage />} />
         </Route>
 
         {/* --- Admin Protected Routes --- */}

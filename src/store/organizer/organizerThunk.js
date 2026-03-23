@@ -26,3 +26,15 @@ export const submitOrganizerApplication = createAsyncThunk(
   }
 );
 
+export const verifyTicketQR = createAsyncThunk(
+  "organizer/verifyTicketQR",
+  async ({ showId, bookingId }, { rejectWithValue }) => {
+    try {
+      const response = await api.post(`/organizers/booking/verify-checkin/${showId}/${bookingId}`);
+      return response.data;
+    } catch (error) {
+      const message = error.response?.data?.detail || "Verification failed";
+      return rejectWithValue(message);
+    }
+  }
+);
