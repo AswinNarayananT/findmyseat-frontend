@@ -1,10 +1,19 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { loginUser, registerUser, verifyOtp, resendOtp, changePassword, updatePersonalInfo } from "./authThunks";
+import { 
+  loginUser, 
+  registerUser, 
+  verifyOtp, 
+  resendOtp, 
+  changePassword, 
+  updatePersonalInfo,
+  getCurrentUser,
+  logoutUser 
+} from "./authThunks";
 
 const initialState = {
   user: null,
-  token: null,
-  isAuthenticated: false,
+  token: localStorage.getItem("access_token"),
+  isAuthenticated: !!localStorage.getItem("access_token"),
   loading: false,
   error: null,
 };
@@ -13,16 +22,15 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    logout(state) {
+    clearAuthState(state) {
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
       localStorage.removeItem("access_token");
-    },
+    }
   },
   extraReducers: (builder) => {
     builder
-      // LOGIN
       .addCase(loginUser.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -39,7 +47,6 @@ const authSlice = createSlice({
         state.error = action.payload;
       })
 
-      // REGISTER
       .addCase(registerUser.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -52,7 +59,6 @@ const authSlice = createSlice({
         state.error = action.payload;
       })
 
-       // VERIFY OTP
       .addCase(verifyOtp.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -69,7 +75,6 @@ const authSlice = createSlice({
         state.error = action.payload;
       })
 
-      // RESEND OTP
       .addCase(resendOtp.pending, (state) => {
         state.loading = true;
       })
@@ -81,12 +86,11 @@ const authSlice = createSlice({
         state.error = action.payload;
       })
 
-      // CHANGE PASSWORD
       .addCase(changePassword.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(changePassword.fulfilled, (state, action) => {
+      .addCase(changePassword.fulfilled, (state) => {
         state.loading = false;
       })
       .addCase(changePassword.rejected, (state, action) => {
@@ -94,14 +98,12 @@ const authSlice = createSlice({
         state.error = action.payload;
       })
 
-      // UPDATE PERSONAL INFO
       .addCase(updatePersonalInfo.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(updatePersonalInfo.fulfilled, (state, action) => {
         state.loading = false;
-
         if (state.user) {
           state.user = {
             ...state.user,
@@ -112,9 +114,44 @@ const authSlice = createSlice({
       .addCase(updatePersonalInfo.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+
+      .addCase(getCurrentUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getCurrentUser.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload;
+        state.isAuthenticated = true;
+      })
+      .addCase(getCurrentUser.rejected, (state, action) => {
+        state.loading = false;
+        state.user = null;
+        state.isAuthenticated = false;
+        state.error = action.payload;
+      })
+
+
+      .addCase(logoutUser.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.user = null;
+        state.token = null;
+        state.isAuthenticated = false;
+        state.loading = false;
+        state.error = null;
+      })
+      .addCase(logoutUser.rejected, (state, action) => {
+        state.user = null;
+        state.token = null;
+        state.isAuthenticated = false;
+        state.loading = false;
+        state.error = action.payload;
       });
   },
 });
 
-export const { logout } = authSlice.actions;
+export const { clearAuthState } = authSlice.actions;
 export default authSlice.reducer;

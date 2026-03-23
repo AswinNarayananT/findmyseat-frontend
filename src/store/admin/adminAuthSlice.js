@@ -5,6 +5,7 @@ import {
   fetchOrganizerApplications,
   fetchOrganizerApplicationDetail,
   updateOrganizerApplicationStatus,
+  getAdminMe,
 } from "./adminAuthThunks";
 
 const initialState = {
@@ -28,6 +29,21 @@ const adminAuthSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
+      // GET ADMIN ME
+      .addCase(getAdminMe.pending, (state) => {
+        state.authLoading = true;
+      })
+      .addCase(getAdminMe.fulfilled, (state, action) => {
+        state.authLoading = false;
+        state.admin = action.payload;
+        state.isAuthenticated = true;
+      })
+      .addCase(getAdminMe.rejected, (state) => {
+        state.authLoading = false;
+        state.admin = null;
+        state.isAuthenticated = false;
+        localStorage.removeItem("access_token");
+      })
 
       // ADMIN LOGIN
       .addCase(adminLogin.pending, (state) => {
@@ -85,11 +101,22 @@ const adminAuthSlice = createSlice({
         state.detailLoading = false;
         state.organizerError = action.payload;
       })
-      
+
       // ADMIN LOGOUT
+      .addCase(adminLogout.pending, (state) => {
+        state.authLoading = true;
+      })
       .addCase(adminLogout.fulfilled, (state) => {
         state.admin = null;
         state.isAuthenticated = false;
+        state.authLoading = false;
+        state.authError = null;
+      })
+      .addCase(adminLogout.rejected, (state, action) => {
+        state.admin = null;
+        state.isAuthenticated = false;
+        state.authLoading = false;
+        state.authError = action.payload;
       });
   },
 });

@@ -11,7 +11,8 @@ import {
   fetchShowLayout,
   confirmAndLockSeats,
   verifyBookingPayment,
-  checkActiveUserLock
+  checkActiveUserLock,
+  fetchUserBookings,
 } from "./eventThunk";
 
 const initialState = {
@@ -22,6 +23,7 @@ const initialState = {
   seats: [],
   selectedSeats: [],
   lockedSeats: [],
+  bookings: [],
   activeLock: null,
   loading: false,
   error: null,
@@ -36,7 +38,7 @@ const eventSlice = createSlice({
     },
     clearEventError: (state) => {
       state.error = null;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -181,6 +183,18 @@ const eventSlice = createSlice({
         state.selectedSeats = [];
       })
       .addCase(verifyBookingPayment.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      .addCase(fetchUserBookings.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchUserBookings.fulfilled, (state, action) => {
+        state.loading = false;
+        state.bookings = action.payload; 
+      })
+      .addCase(fetchUserBookings.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

@@ -1,6 +1,19 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../api/axios";
 
+
+export const getCurrentUser = createAsyncThunk(
+  "auth/getCurrentUser",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get("/auth/me");
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.detail || "Session expired");
+    }
+  }
+);
+
 export const registerUser = createAsyncThunk(
   "auth/register",
   async (data, { rejectWithValue }) => {
@@ -35,6 +48,20 @@ export const loginUser = createAsyncThunk(
       return rejectWithValue(
         error.response?.data?.message || "Login failed"
       );
+    }
+  }
+);
+
+export const logoutUser = createAsyncThunk(
+  "auth/logoutUser",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.post("/auth/logout");
+      localStorage.removeItem("access_token");
+      return response.data;
+    } catch (error) {
+      localStorage.removeItem("access_token");
+      return rejectWithValue(error.response?.data?.detail || "Logout failed");
     }
   }
 );

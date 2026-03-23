@@ -1,7 +1,8 @@
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
-import { logout } from "../store/auth/authSlice";
+import { logoutUser } from "../store/auth/authThunks"; // Updated import
 import FindMySeatIcon from "../assets/findmyseat.svg";
+import toast from "react-hot-toast";
 
 function Navbar() {
   const dispatch = useDispatch();
@@ -9,9 +10,17 @@ function Navbar() {
 
   const { user, isAuthenticated } = useSelector((state) => state.auth);
 
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      // Dispatch the thunk that calls the /logout API to clear cookies
+      await dispatch(logoutUser()).unwrap();
+      toast.success("Logged out successfully");
+      navigate("/login");
+    } catch (error) {
+      toast.error(error || "Logout failed");
+      // Even if API fails, we usually redirect as the local state is cleared
+      navigate("/login");
+    }
   };
 
   const handleAddEvent = () => {
@@ -44,20 +53,12 @@ function Navbar() {
 
         {/* Navigation Links */}
         <nav className="hidden md:flex gap-8 items-center">
-
           <Link
             to="/public-events"
             className="text-sm font-medium text-[#9ca6ba] hover:text-white transition-colors cursor-pointer"
           >
             Events
           </Link>
-
-          {/* <Link
-            to="/venues"
-            className="text-sm font-medium text-[#9ca6ba] hover:text-white transition-colors cursor-pointer"
-          >
-            Venues
-          </Link> */}
 
           <Link
             to="/about"
@@ -83,7 +84,6 @@ function Navbar() {
               Add Event
             </button>
           )}
-
         </nav>
 
         {/* Auth Section */}

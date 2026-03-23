@@ -1,9 +1,9 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Toaster } from "react-hot-toast"
+import { Toaster } from "react-hot-toast";
 import Home from "../pages/Home";
 import Auth from "../pages/Auth/Auth";
 import VerifyOtp from "../pages/Auth/VerifyOtp";
-import Profile from "../pages/Auth/profile";
+// import Profile from "../pages/Auth/profile";
 import AdminLogin from "../pages/Admin/AdminLogin";
 import AdminDashboard from "../pages/Admin/AdminDashboard";
 import OrganizerApplication from "../pages/organizer/OrganizerApplication";
@@ -22,54 +22,64 @@ import EventDiscoveryPage from "../pages/user/EventDiscoveryPage";
 import BookingPage from "../pages/user/BookingPage";
 import SeatSelectionPage from "../pages/user/SeatSelectionPage";
 import PaymentPage from "../pages/event/PaymentPage";
-
+import BookingHistoryPage from "../pages/profile/BookingHistoryPage";
+import ProtectedRoute from "./ProtectedRoute";
+import PublicRoute from "./PublicRoute";
+import AdminRoute from "./AdminRoute";
+import Profile from "../pages/profile/profile";
 
 function AppRouter() {
   return (
     <BrowserRouter>
-            <Toaster
+      <Toaster
         position="top-right"
         toastOptions={{
           style: {
             background: "#1f2937",
-            color: "#fff"
-          }
+            color: "#fff",
+          },
         }}
       />
       <Routes>
-
-        {/* User Routes */}
+        {/* --- Public Access Routes --- */}
         <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Auth />} />
-        <Route path="/verify-otp" element={<VerifyOtp />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/public-events" element={<EventDiscoveryPage />} />
-        <Route path="/booking/event/:eventId" element={<BookingPage />} />
-        <Route path="/booking/seats/:showId" element={<SeatSelectionPage />} />
-        <Route path="/booking/checkout/:showId"  element={<PaymentPage /> } />
-
-
-
-        {/* Organizer Routes */}
-        <Route path="/organizer-application" element={<OrganizerApplication />} />
-        <Route path="/application-success" element={<ApplicationSuccess />} />
-        <Route path="/my-events" element={<MyEvents />} />
-        <Route path="/create-event" element={<CreateEvent />} />
-        <Route path="/create-event-show/:eventId" element={<CreateEventShow />} />
         <Route path="/event/:eventId" element={<EventDetailPage />} />
-        <Route path="/event-layout/:eventId" element={<SeatLayoutBuilder />} />
 
-
-        {/* Admin Routes */}
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin" element={<AdminBase />}>
-          <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="organizer-applications" element={<OrganizerApplications />} />
+        {/* --- Guest Only Routes (Login/Signup/etc) --- */}
+        <Route element={<PublicRoute />}>
+          <Route path="/login" element={<Auth />} />
+          <Route path="/verify-otp" element={<VerifyOtp />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
         </Route>
-        <Route  path="/admin/organizer-applications/:id"element={<OrganizerApplicationDetail />} />
 
+        {/* --- User/Organizer Protected Routes --- */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/bookings" element={<BookingHistoryPage />} />
+          <Route path="/booking/event/:eventId" element={<BookingPage />} />
+          <Route path="/booking/seats/:showId" element={<SeatSelectionPage />} />
+          <Route path="/booking/checkout/:showId" element={<PaymentPage />} />
+
+          {/* Organizer Specific */}
+          <Route path="/organizer-application" element={<OrganizerApplication />} />
+          <Route path="/application-success" element={<ApplicationSuccess />} />
+          <Route path="/my-events" element={<MyEvents />} />
+          <Route path="/create-event" element={<CreateEvent />} />
+          <Route path="/create-event-show/:eventId" element={<CreateEventShow />} />
+          <Route path="/event-layout/:eventId" element={<SeatLayoutBuilder />} />
+        </Route>
+
+        {/* --- Admin Protected Routes --- */}
+        <Route element={<AdminRoute />}>
+          <Route path="/admin" element={<AdminBase />}>
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="organizer-applications" element={<OrganizerApplications />} />
+            <Route path="organizer-applications/:id" element={<OrganizerApplicationDetail />} />
+          </Route>
+        </Route>
 
       </Routes>
     </BrowserRouter>

@@ -1,6 +1,19 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../api/axios";
 
+
+export const getAdminMe = createAsyncThunk(
+  "adminAuth/getAdminMe",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get("/admin/me");
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.detail || "Admin session expired");
+    }
+  }
+);
+
 export const adminLogin = createAsyncThunk(
   "adminAuth/login",
   async ({ email, password }, { rejectWithValue }) => {
@@ -16,6 +29,8 @@ export const adminLogin = createAsyncThunk(
     }
   }
 );
+
+
 
 export const fetchOrganizerApplications = createAsyncThunk(
   "adminAuth/fetchOrganizerApplications",
@@ -75,10 +90,12 @@ export const adminLogout = createAsyncThunk(
   "adminAuth/logout",
   async (_, { rejectWithValue }) => {
     try {
+      await api.post("/admin/logout"); 
       localStorage.removeItem("access_token");
       return true;
     } catch (error) {
-      return rejectWithValue("Admin logout failed");
+      localStorage.removeItem("access_token");
+      return rejectWithValue(error.response?.data?.detail || "Logout failed");
     }
   }
 );
