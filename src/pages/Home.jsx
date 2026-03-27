@@ -1,12 +1,14 @@
 import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getCurrentUser } from "../store/auth/authThunks";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { Armchair, ShieldCheck, Zap, ArrowRight, Play } from "lucide-react";
 
 function Home() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
 
   useEffect(() => {
@@ -17,110 +19,102 @@ function Home() {
   }, [dispatch, user]);
 
   return (
-    <div className="dark bg-background-dark min-h-screen flex flex-col text-white font-display">
+    <div className="min-h-screen bg-[#020617] flex flex-col text-slate-200">
       <Navbar />
 
       <main className="flex-1">
         {/* 🔥 HERO SECTION */}
-        <section className="px-6 py-24 text-center max-w-6xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-5xl md:text-7xl font-black leading-none tracking-tight mb-6 text-white">
+        <section className="relative px-6 py-24 md:py-32 text-center max-w-7xl mx-auto overflow-hidden">
+          {/* Subtle Background Glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-indigo-600/5 blur-[120px] rounded-full pointer-events-none" />
+
+          <div className="relative z-10 mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] mb-8 animate-in fade-in slide-in-from-top-4 duration-1000">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+              </span>
+              Next-Gen Booking Platform
+            </div>
+
+            <h1 className="text-5xl md:text-8xl font-black leading-[0.9] tracking-tighter mb-8 text-white">
               FIND YOUR PERFECT <br />
-              <span className="text-blue-600">SEAT</span>
+              <span className="text-indigo-600">SEAT</span>
             </h1>
 
-            <p className="mt-8 text-slate-400 text-lg md:text-xl max-w-2xl mx-auto font-normal leading-relaxed">
-              Book events with smart seat selection, real-time availability, and
-              seamless OTP-based secure authentication.
+            <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto font-medium leading-relaxed">
+              Experience smart seat selection with real-time availability and 
+              secure authentication. The future of event booking is here.
             </p>
           </div>
 
-          {/* CTA Buttons - Hidden if authenticated */}
-          {!isAuthenticated && (
-            <div className="mt-12 flex justify-center gap-4 flex-wrap">
-              <Link
-                to="/register"
-                className="px-8 py-3.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all uppercase tracking-wider text-sm"
-              >
-                Get Started
-              </Link>
-
+          <div className="relative z-10 flex flex-wrap justify-center gap-4">
+            <Link
+              to="/public-events"
+              className="px-10 py-4 rounded-2xl bg-indigo-600 text-white font-black hover:bg-indigo-500 transition-all uppercase tracking-widest text-xs shadow-xl shadow-indigo-600/20 flex items-center gap-3 group"
+            >
+              Explore Events
+              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+            
+            {!isAuthenticated && (
               <Link
                 to="/login"
-                className="px-8 py-3.5 rounded-lg bg-[#1E1E1E] border border-slate-800 text-white font-semibold hover:bg-slate-800 transition-all text-sm"
+                className="px-10 py-4 rounded-2xl bg-slate-900 border border-slate-800 text-slate-300 font-black hover:bg-slate-800 transition-all uppercase tracking-widest text-xs flex items-center gap-3"
               >
-                Sign In
+                Join Now
               </Link>
-            </div>
-          )}
-
-          {/* Active Indicator */}
-          <div className="flex justify-center mt-12">
-            <div className="flex items-center gap-2 bg-[#1E1E1E] px-4 py-2 rounded-full border border-slate-800">
-              <div className="size-2 rounded-full bg-blue-600 animate-pulse"></div>
-              <span className="text-xs font-medium text-white">
-                Platform Active & Ready
-              </span>
-            </div>
+            )}
           </div>
         </section>
 
         {/* 🔥 FEATURES SECTION */}
-        <section className="px-6 py-20 bg-[#121212] border-t border-slate-800">
+        <section className="px-6 py-24 bg-slate-950 border-t border-slate-900">
           <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">
-                Features
-              </span>
-              <h2 className="text-4xl md:text-5xl font-black leading-tight tracking-tight mt-4 mb-6 text-white">
+            <div className="text-center mb-20">
+              <h2 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-6 uppercase">
                 WHY CHOOSE US
               </h2>
-              <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-                Experience the next generation of booking with cutting-edge
-                features designed for you.
-              </p>
+              <div className="w-20 h-1.5 bg-indigo-600 mx-auto rounded-full" />
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
               {/* Feature Card 1 */}
-              <div className="group flex flex-col bg-[#1E1E1E] border border-slate-800 rounded-xl p-8 hover:border-blue-600/50 transition-all duration-300">
-                <div className="flex items-center justify-center w-14 h-14 rounded-lg bg-blue-600/10 text-blue-600 mb-6">
-                  <span className="material-symbols-outlined text-3xl">event_seat</span>
+              <div className="group bg-slate-900/40 border border-slate-800 p-10 rounded-[40px] hover:border-indigo-600/40 transition-all duration-500 backdrop-blur-sm">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-600/10 flex items-center justify-center text-indigo-500 mb-8 group-hover:scale-110 transition-transform">
+                  <Armchair size={32} />
                 </div>
-                <h3 className="text-xl font-extrabold leading-tight text-white mb-4 group-hover:text-blue-600 transition-colors">
-                  Smart Seat Selection
+                <h3 className="text-xl font-black text-white mb-4 uppercase tracking-tight">
+                  Smart Selection
                 </h3>
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  Visual seat layouts with real-time availability so you always
-                  choose exactly where you want to sit.
+                <p className="text-slate-500 font-medium text-sm leading-relaxed">
+                  Interactive visual layouts with instant locking. See exactly where you'll sit before you pay.
                 </p>
               </div>
 
               {/* Feature Card 2 */}
-              <div className="group flex flex-col bg-[#1E1E1E] border border-slate-800 rounded-xl p-8 hover:border-blue-600/50 transition-all duration-300">
-                <div className="flex items-center justify-center w-14 h-14 rounded-lg bg-blue-600/10 text-blue-600 mb-6">
-                  <span className="material-symbols-outlined text-3xl">lock</span>
+              <div className="group bg-slate-900/40 border border-slate-800 p-10 rounded-[40px] hover:border-indigo-600/40 transition-all duration-500 backdrop-blur-sm">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-600/10 flex items-center justify-center text-indigo-500 mb-8 group-hover:scale-110 transition-transform">
+                  <ShieldCheck size={32} />
                 </div>
-                <h3 className="text-xl font-extrabold leading-tight text-white mb-4 group-hover:text-blue-600 transition-colors">
-                  Secure OTP Authentication
+                <h3 className="text-xl font-black text-white mb-4 uppercase tracking-tight">
+                  OTP Security
                 </h3>
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  Multi-layered authentication with OTP verification ensuring
-                  safe and trusted bookings.
+                <p className="text-slate-500 font-medium text-sm leading-relaxed">
+                  Multi-layered verification ensuring every booking is legitimate and every account is secure.
                 </p>
               </div>
 
               {/* Feature Card 3 */}
-              <div className="group flex flex-col bg-[#1E1E1E] border border-slate-800 rounded-xl p-8 hover:border-blue-600/50 transition-all duration-300">
-                <div className="flex items-center justify-center w-14 h-14 rounded-lg bg-blue-600/10 text-blue-600 mb-6">
-                  <span className="material-symbols-outlined text-3xl">bolt</span>
+              <div className="group bg-slate-900/40 border border-slate-800 p-10 rounded-[40px] hover:border-indigo-600/40 transition-all duration-500 backdrop-blur-sm">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-600/10 flex items-center justify-center text-indigo-500 mb-8 group-hover:scale-110 transition-transform">
+                  <Zap size={32} />
                 </div>
-                <h3 className="text-xl font-extrabold leading-tight text-white mb-4 group-hover:text-blue-600 transition-colors">
-                  Fast & Seamless Booking
+                <h3 className="text-xl font-black text-white mb-4 uppercase tracking-tight">
+                  Ultra Fast
                 </h3>
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  Optimized backend architecture powered by FastAPI and React
-                  for high-performance booking experience.
+                <p className="text-slate-500 font-medium text-sm leading-relaxed">
+                  Powered by FastAPI and React for millisecond response times. No more lag during high-demand drops.
                 </p>
               </div>
             </div>
@@ -128,47 +122,56 @@ function Home() {
         </section>
 
         {/* 🔥 STATS SECTION */}
-        <section className="px-6 py-20 bg-background-dark">
+        <section className="px-6 py-20 bg-[#020617]">
           <div className="max-w-6xl mx-auto">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              <div className="text-center">
-                <div className="text-4xl md:text-5xl font-black text-blue-600 mb-2">50K+</div>
-                <div className="text-slate-400 text-sm font-medium uppercase tracking-wider">Active Users</div>
-              </div>
-              <div className="text-center">
-                <div className="text-4xl md:text-5xl font-black text-blue-600 mb-2">200K+</div>
-                <div className="text-slate-400 text-sm font-medium uppercase tracking-wider">Bookings Made</div>
-              </div>
-              <div className="text-center">
-                <div className="text-4xl md:text-5xl font-black text-blue-600 mb-2">1000+</div>
-                <div className="text-slate-400 text-sm font-medium uppercase tracking-wider">Events Hosted</div>
-              </div>
-              <div className="text-center">
-                <div className="text-4xl md:text-5xl font-black text-blue-600 mb-2">24/7</div>
-                <div className="text-slate-400 text-sm font-medium uppercase tracking-wider">Support</div>
-              </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
+              {[
+                { label: "Active Users", val: "50K+" },
+                { label: "Bookings Made", val: "200K+" },
+                { label: "Events Hosted", val: "1000+" },
+                { label: "Uptime", val: "99.9%" }
+              ].map((stat, i) => (
+                <div key={i} className="text-center">
+                  <div className="text-4xl md:text-5xl font-black text-white mb-3 tracking-tighter italic">
+                    {stat.val}
+                  </div>
+                  <div className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em]">
+                    {stat.label}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
         {/* 🔥 CTA SECTION */}
-        <section className="px-6 py-24 text-center bg-[#1E1E1E] border-y border-slate-800">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-4xl md:text-5xl font-black leading-tight tracking-tight text-white">
-              READY TO RESERVE <br />YOUR SEAT?
+        <section className="relative px-6 py-32 text-center bg-slate-950 border-y border-slate-900 overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 blur-[100px] rounded-full" />
+          
+          <div className="relative z-10 max-w-4xl mx-auto">
+            <h2 className="text-4xl md:text-6xl font-black leading-[1] tracking-tighter text-white uppercase mb-8">
+              READY TO RESERVE <br />YOUR EXPERIENCE?
             </h2>
 
-            <p className="mt-6 text-slate-400 text-lg">
-              Create an account and start booking instantly.
+            <p className="text-slate-400 text-lg font-medium mb-12">
+              Don't miss out. Join thousands of users booking events daily.
             </p>
 
-            {!isAuthenticated && (
+            {!isAuthenticated ? (
               <Link
-                to="/register"
-                className="inline-flex items-center gap-2 mt-10 px-10 py-4 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all uppercase tracking-wider text-sm"
+                to="/login"
+                className="inline-flex items-center gap-3 px-12 py-5 rounded-2xl bg-indigo-600 text-white font-black hover:bg-indigo-500 transition-all uppercase tracking-widest text-sm shadow-xl shadow-indigo-600/30 group"
               >
                 Create Account
-                <span className="material-symbols-outlined">arrow_forward</span>
+                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              </Link>
+            ) : (
+              <Link
+                to="/public-events"
+                className="inline-flex items-center gap-3 px-12 py-5 rounded-2xl bg-white text-black font-black hover:bg-slate-200 transition-all uppercase tracking-widest text-sm"
+              >
+                Browse Events
+                <Play size={18} fill="currentColor" />
               </Link>
             )}
           </div>

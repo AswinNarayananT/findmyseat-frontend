@@ -1,128 +1,128 @@
-import { useState, useEffect } from "react"
-import { useDispatch, useSelector } from "react-redux"
-import { useParams, useNavigate } from "react-router-dom"
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet"
-import L from "leaflet"
-import { createEventShow, fetchEvent } from "../../store/event/eventThunk"
-import "leaflet/dist/leaflet.css"
+import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useParams, useNavigate } from "react-router-dom";
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
+import L from "leaflet";
+import { createEventShow, fetchEvent } from "../../store/event/eventThunk";
+import Navbar from "../../components/Navbar";
+import Footer from "../../components/Footer";
+import { MapPin, Search, Plus, Clock, Users, Navigation, Loader2, Calendar as CalendarIcon, AlertCircle } from "lucide-react";
+import toast from "react-hot-toast";
+import "leaflet/dist/leaflet.css";
 
-delete L.Icon.Default.prototype._getIconUrl
+// Leaflet Marker Fix
+delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png"
-})
+});
 
 function LocationPicker({ setLocation }) {
-  useMapEvents({
-    click(e) {
-      setLocation(e.latlng)
-    }
-  })
-  return null
+  useMapEvents({ click(e) { setLocation(e.latlng); } });
+  return null;
 }
 
 function ChangeMapView({ coords }) {
-  const map = useMap()
+  const map = useMap();
   useEffect(() => {
-    if (coords) {
-      map.setView([coords.lat, coords.lng], 15)
-    }
-  }, [coords])
-  return null
+    if (coords) map.setView([coords.lat, coords.lng], 15);
+  }, [coords]);
+  return null;
 }
 
 export default function CreateEventShow() {
-  const dispatch = useDispatch()
-  const navigate = useNavigate()
-  const { eventId } = useParams()
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { eventId } = useParams(); // This is the ID of the parent Event
 
-  const { event } = useSelector(state => state.event)
-  const { user } = useSelector(state => state.auth)
+  const { event, loading } = useSelector(state => state.event);
+  const { user } = useSelector(state => state.auth);
 
-  const [location, setLocation] = useState(null)
-  const [search, setSearch] = useState("")
-  const [results, setResults] = useState([])
-  const [venueName, setVenueName] = useState("")
-  const [address, setAddress] = useState("")
-  const [capacity, setCapacity] = useState("")
-  const [times, setTimes] = useState([""])
-  const [error, setError] = useState(null)
+  const [location, setLocation] = useState(null);
+  const [search, setSearch] = useState("");
+  const [results, setResults] = useState([]);
+  const [venueName, setVenueName] = useState("");
+  const [address, setAddress] = useState("");
+  const [capacity, setCapacity] = useState("");
+  const [times, setTimes] = useState([""]); 
+  const [formError, setFormError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchEvent(eventId))
-  }, [dispatch, eventId])
+    if (eventId) dispatch(fetchEvent(eventId));
+  }, [dispatch, eventId]);
 
   useEffect(() => {
     if (event && user && event.organizer_id !== user.id) {
-      navigate("/my-events")
+      toast.error("Unauthorized access");
+      navigate("/my-events");
     }
-  }, [event, user])
+  }, [event, user, navigate]);
 
   const searchLocation = async () => {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${search}&format=json&addressdetails=1`
-    )
-    const data = await res.json()
-    setResults(data)
-  }
+    if (!search) return;
+    try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(search)}&format=json&addressdetails=1`);
+        const data = await res.json();
+        setResults(data);
+    } catch (err) {
+        toast.error("Location search failed");
+    }
+  };
 
   const selectPlace = (place) => {
-    const coords = {
-      lat: parseFloat(place.lat),
-      lng: parseFloat(place.lon)
-    }
-
-    setLocation(coords)
-    setVenueName(place.display_name.split(",")[0])
-    setAddress(place.display_name)
-    setResults([])
-  }
-
-  const addTime = () => {
-    setTimes([...times, ""])
-  }
-
-  const updateTime = (value, index) => {
-    const updated = [...times]
-    updated[index] = value
-    setTimes(updated)
-  }
+    const coords = { lat: parseFloat(place.lat), lng: parseFloat(place.lon) };
+    setLocation(coords);
+    setVenueName(place.display_name.split(",")[0]);
+    setAddress(place.display_name);
+    setResults([]);
+  };
 
   const validateTimes = () => {
-    if (!event) return false
+    if (!event) return { valid: false, msg: "Event data not loaded." };
 
-    const duration = event.estimated_duration_minutes
-    const buffer = 15
+    const duration = event.estimated_duration_minutes;
+    const buffer = 15;
+    const now = new Date();
 
-    const parsedTimes = times
-      .filter(t => t)
+    const sortedTimes = times
+      .filter(t => t !== "")
       .map(t => new Date(t))
-      .sort((a,b)=>a-b)
+      .sort((a, b) => a.getTime() - b.getTime());
 
-    for (let i = 0; i < parsedTimes.length - 1; i++) {
-      const currentEnd = new Date(parsedTimes[i].getTime() + (duration + buffer) * 60000)
-      if (parsedTimes[i+1] < currentEnd) {
-        return false
+    if (sortedTimes.length === 0) return { valid: false, msg: "At least one show time is required." };
+
+    for (let i = 0; i < sortedTimes.length; i++) {
+      // 1. Past Date Check
+      if (sortedTimes[i] < now) {
+        return { valid: false, msg: `Show ${i + 1} cannot be in the past.` };
+      }
+
+      // 2. Conflict Check
+      if (i < sortedTimes.length - 1) {
+        const currentShowEnd = sortedTimes[i].getTime() + (duration + buffer) * 60000;
+        if (sortedTimes[i + 1].getTime() < currentShowEnd) {
+          return {
+            valid: false,
+            msg: `Conflict: Show ${i + 1} ends too close to Show ${i + 2}. (Required: Duration + 15m buffer)`
+          };
+        }
       }
     }
+    return { valid: true };
+  };
 
-    return true
-  }
+  const submit = async () => {
+    setFormError(null);
 
-  const submit = () => {
-    setError(null)
+    if (!location) return setFormError("Please select a venue on the map.");
+    if (!venueName || !capacity) return setFormError("Venue details and capacity are required.");
 
-    if (!location) {
-      setError("Please select venue location")
-      return
-    }
+    const validation = validateTimes();
+    if (!validation.valid) return setFormError(validation.msg);
 
-    if (!validateTimes()) {
-      setError("Show times conflict with duration + 15 min buffer")
-      return
-    }
-
+    setIsSubmitting(true);
     const payload = {
       event_id: eventId,
       venue: {
@@ -132,137 +132,184 @@ export default function CreateEventShow() {
         longitude: location.lng
       },
       capacity: Number(capacity),
-      start_times: times
-    }
+      start_times: times.filter(t => t)
+    };
 
-    dispatch(createEventShow(payload))
-     navigate(`/event-layout/${event.id}`)
-  }
+    try {
+      await dispatch(createEventShow(payload)).unwrap();
+      toast.success("Shows scheduled successfully!");
+
+      // NAVIGATE WITH eventId
+      // This allows the LayoutBuilder to fetch all shows for this specific event
+      navigate(`/event-layout/${eventId}`);
+    } catch (err) {
+      toast.error(err || "Failed to create shows");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-white p-10">
-      <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-10">
+    <div className="min-h-screen bg-[#020617] flex flex-col text-slate-200">
+      <Navbar />
 
-        <div className="bg-[#1a1a1a] rounded-2xl p-6 shadow-xl">
-          <h2 className="text-2xl font-bold mb-2">Select Venue</h2>
-
-          {event && (
-            <div className="text-sm text-gray-400 mb-4">
-              Event: <span className="text-white font-semibold">{event.title}</span>
+      <main className="flex-1 p-6 md:p-12">
+        <div className="max-w-[1400px] mx-auto space-y-10">
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter">
+                Finalize <span className="text-indigo-600">Schedule</span>
+              </h1>
+              <p className="text-slate-500 font-medium mt-2 uppercase text-[10px] tracking-[0.3em]">
+                Event: <span className="text-white">{event?.title || "Loading..."}</span>
+              </p>
             </div>
-          )}
 
-          <div className="flex gap-3 mb-4">
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search venue..."
-              className="flex-1 bg-[#2a2a2a] p-3 rounded-lg outline-none"
-            />
-            <button
-              onClick={searchLocation}
-              className="bg-pink-600 px-6 rounded-lg"
-            >
-              Search
-            </button>
-          </div>
+            <div className="flex items-center gap-3 bg-indigo-600/10 border border-indigo-600/20 px-4 py-2 rounded-2xl">
+              <Clock size={16} className="text-indigo-400" />
+              <span className="text-xs font-black text-indigo-400 uppercase tracking-widest">
+                Duration: {event?.estimated_duration_minutes}m + 15m Buffer
+              </span>
+            </div>
+          </header>
 
-          {results.length > 0 && (
-            <div className="bg-[#2a2a2a] rounded-lg mb-4 max-h-40 overflow-y-auto">
-              {results.map((r,i)=>(
-                <div
-                  key={i}
-                  onClick={()=>selectPlace(r)}
-                  className="p-3 border-b border-gray-700 hover:bg-[#3a3a3a] cursor-pointer"
-                >
-                  {r.display_name}
+          <div className="grid lg:grid-cols-12 gap-10">
+            {/* LEFT: Venue & Map */}
+            <div className="lg:col-span-7 space-y-8 bg-slate-900/40 border border-slate-800 rounded-[48px] p-8 shadow-2xl backdrop-blur-sm">
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 text-indigo-500 font-black uppercase text-[10px] tracking-[0.3em]">
+                  <MapPin size={16} />
+                  <span>Venue Picker</span>
                 </div>
-              ))}
+
+                <div className="relative flex gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700" size={18} />
+                    <input
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && searchLocation()}
+                      placeholder="Search for venue location..."
+                      className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-indigo-600 outline-none transition-all font-bold text-white placeholder:text-slate-700"
+                    />
+                  </div>
+                  <button onClick={searchLocation} className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">
+                    Search
+                  </button>
+
+                  {results.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl z-[1000] max-h-60 overflow-y-auto">
+                      {results.map((r, i) => (
+                        <div key={i} onClick={() => selectPlace(r)} className="p-4 border-b border-slate-800 hover:bg-indigo-600/10 cursor-pointer text-sm font-medium transition-colors text-slate-300">
+                          {r.display_name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-[32px] overflow-hidden border-4 border-slate-950 shadow-2xl h-[400px]">
+                  <MapContainer center={[20.5937, 78.9629]} zoom={5} className="h-full w-full z-0">
+                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                    <LocationPicker setLocation={setLocation} />
+                    <ChangeMapView coords={location} />
+                    {location && <Marker position={[location.lat, location.lng]} />}
+                  </MapContainer>
+                </div>
+              </div>
             </div>
-          )}
 
-          <MapContainer
-            center={[20.5937,78.9629]}
-            zoom={5}
-            className="h-[400px] rounded-xl"
-          >
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <LocationPicker setLocation={setLocation} />
-            <ChangeMapView coords={location} />
-            {location && <Marker position={[location.lat, location.lng]} />}
-          </MapContainer>
+            {/* RIGHT: Show Details & Timing */}
+            <div className="lg:col-span-5 bg-slate-900/40 border border-slate-800 rounded-[48px] p-8 md:p-10 shadow-2xl backdrop-blur-sm space-y-8">
+              <div className="flex items-center gap-2 text-indigo-500 font-black uppercase text-[10px] tracking-[0.3em]">
+                <Navigation size={16} />
+                <span>Show Details</span>
+              </div>
 
-        </div>
+              <div className="space-y-5">
+                <div>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Venue Name</label>
+                  <input
+                    value={venueName}
+                    onChange={(e) => setVenueName(e.target.value)}
+                    className="w-full mt-2 bg-slate-950 p-4 rounded-2xl border border-slate-800 outline-none focus:border-indigo-600 font-bold text-sm text-white"
+                  />
+                </div>
 
-        <div className="bg-[#1a1a1a] rounded-2xl p-8 shadow-xl space-y-6">
+                <div>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Capacity</label>
+                  <input
+                    type="number"
+                    value={capacity}
+                    onChange={(e) => setCapacity(e.target.value)}
+                    className="w-full mt-2 bg-slate-950 p-4 rounded-2xl border border-slate-800 outline-none focus:border-indigo-600 font-bold text-sm text-white"
+                  />
+                </div>
 
-          <h2 className="text-2xl font-bold">Show Details</h2>
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 flex justify-between">
+                    <span>Show Date & Time</span>
+                  </label>
 
-          <div>
-            <label className="text-gray-400 text-sm">Venue Name</label>
-            <input
-              value={venueName}
-              onChange={(e)=>setVenueName(e.target.value)}
-              className="w-full mt-1 bg-[#2a2a2a] p-3 rounded-lg outline-none"
-            />
-          </div>
+                  {times.map((t, i) => (
+                    <div key={i} className="flex gap-2 animate-in slide-in-from-right-4 duration-300">
+                      <div className="relative flex-1">
+                        <CalendarIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                        <input
+                          type="datetime-local"
+                          value={t}
+                          onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                          onChange={(e) => {
+                            const updated = [...times];
+                            updated[i] = e.target.value;
+                            setTimes(updated);
+                          }}
+                          className="w-full bg-slate-950 p-4 pl-12 rounded-2xl border border-slate-800 outline-none focus:border-indigo-600 font-bold text-sm text-white [color-scheme:dark]"
+                        />
+                      </div>
 
-          <div>
-            <label className="text-gray-400 text-sm">Address</label>
-            <textarea
-              value={address}
-              onChange={(e)=>setAddress(e.target.value)}
-              className="w-full mt-1 bg-[#2a2a2a] p-3 rounded-lg outline-none"
-            />
-          </div>
+                      {times.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setTimes(times.filter((_, idx) => idx !== i))}
+                          className="px-4 bg-red-500/10 text-red-500 rounded-2xl border border-red-500/20 hover:bg-red-500 hover:text-white transition-all font-black"
+                        >
+                          &times;
+                        </button>
+                      )}
+                    </div>
+                  ))}
 
-          <div>
-            <label className="text-gray-400 text-sm">Capacity</label>
-            <input
-              type="number"
-              value={capacity}
-              onChange={(e)=>setCapacity(e.target.value)}
-              className="w-full mt-1 bg-[#2a2a2a] p-3 rounded-lg outline-none"
-            />
-          </div>
+                  <button
+                    type="button"
+                    onClick={() => setTimes([...times, ""])}
+                    className="flex items-center gap-2 text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-2 hover:text-white transition-colors"
+                  >
+                    <Plus size={14} /> Add Another Showtime
+                  </button>
+                </div>
+              </div>
 
-          <div>
-            <label className="text-gray-400 text-sm">Show Times</label>
+              {formError && (
+                <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-2xl">
+                  <AlertCircle size={18} className="shrink-0" />
+                  <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed">{formError}</p>
+                </div>
+              )}
 
-            {times.map((t,i)=>(
-              <input
-                key={i}
-                type="datetime-local"
-                value={t}
-                onChange={(e)=>updateTime(e.target.value,i)}
-                className="w-full mt-2 bg-[#2a2a2a] p-3 rounded-lg outline-none"
-              />
-            ))}
-
-            <button
-              onClick={addTime}
-              className="mt-3 text-sm text-pink-400"
-            >
-              + Add another show
-            </button>
-          </div>
-
-          {error && (
-            <div className="bg-red-500/20 border border-red-500 text-red-400 p-3 rounded-lg text-sm">
-              {error}
+              <button
+                onClick={submit}
+                disabled={isSubmitting || loading}
+                className="w-full py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-600/20 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3"
+              >
+                {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : "Design Layout"}
+              </button>
             </div>
-          )}
-
-          <button
-            onClick={submit}
-            className="w-full py-4 bg-gradient-to-r from-pink-600 to-rose-600 rounded-xl font-bold"
-          >
-            Create Event Shows
-          </button>
-
+          </div>
         </div>
+      </main>
 
-      </div>
+      <Footer />
     </div>
-  )
+  );
 }

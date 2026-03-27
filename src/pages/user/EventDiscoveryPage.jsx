@@ -1,63 +1,123 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchActiveEvents } from "../../store/event/eventThunk";
-import { Calendar, MapPin, Tag } from "lucide-react";
+import { Calendar, MapPin, Search } from "lucide-react";
 import { Link } from "react-router-dom";
+import Navbar from "../../components/Navbar";
+import Footer from "../../components/Footer";
 
 const EventDiscoveryPage = () => {
   const dispatch = useDispatch();
-  const { events, loading } = useSelector((state) => state.event);
+  // Safe default to an empty array if state is weird
+  const { events = [], loading } = useSelector((state) => state.event);
 
   useEffect(() => {
     dispatch(fetchActiveEvents());
   }, [dispatch]);
 
-  if (loading) return <div className="text-center p-20 text-white">Finding amazing events...</div>;
-
-  return (
-    <div className="min-h-screen bg-[#020617] p-8">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-8">Upcoming Events</h1>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {events.map((event) => (
-            <div key={event.id} className="bg-slate-900 rounded-3xl overflow-hidden border border-slate-800 hover:border-indigo-500 transition-all group">
-              <div className="relative h-48">
-                <img 
-                  src={event.image_url || "/placeholder.jpg"} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute top-4 left-4 bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase">
-                  {event.category}
-                </div>
-              </div>
-
-              <div className="p-6 space-y-4">
-                <h3 className="text-xl font-bold text-white leading-tight">{event.title}</h3>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-slate-400 text-sm">
-                    <MapPin size={14}/> {event.shows[0]?.venue?.name || "Multiple Venues"}
-                  </div>
-                  <div className="flex items-center gap-2 text-slate-400 text-sm">
-                    <Calendar size={14}/> {event.shows.length} Show timings available
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-4 border-t border-slate-800">
-                  <span className="text-indigo-400 font-bold">From ₹{event.base_price}</span>
-                  <Link 
-                    to={`/booking/event/${event.id}`}
-                    className="bg-white text-black px-4 py-2 rounded-xl text-sm font-bold hover:bg-indigo-400 hover:text-white transition-all"
-                  >
-                    {event.entry_type === "seat_wise" ? "Book Seats" : "Get Tickets"}
-                  </Link>
-                </div>
-              </div>
-            </div>
-          ))}
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="size-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-indigo-400 font-black uppercase tracking-widest text-xs">Finding amazing events...</p>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#020617] flex flex-col text-slate-200">
+      <Navbar />
+
+      <main className="flex-1 p-6 md:p-10">
+        <div className="max-w-[1440px] mx-auto space-y-10">
+          
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter">
+                Upcoming <span className="text-indigo-600">Events</span>
+              </h1>
+              <p className="text-slate-500 font-medium mt-2">Discover and book the best experiences in town.</p>
+            </div>
+            
+            <div className="flex gap-3">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                <input 
+                  type="text" 
+                  placeholder="Search events..." 
+                  className="bg-slate-900 border border-slate-800 rounded-2xl py-3 pl-12 pr-4 text-sm focus:outline-none focus:border-indigo-600 transition-all w-full md:w-64"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {events?.map((event) => (
+              <div 
+                key={event.id} 
+                className="bg-slate-900/40 rounded-[32px] overflow-hidden border border-slate-800 hover:border-indigo-500/50 transition-all group flex flex-col shadow-xl"
+              >
+                <div className="relative h-56 overflow-hidden">
+                  <img 
+                    src={event.image_url || "/placeholder.jpg"} 
+                    alt={event.title}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    onError={(e) => { e.target.src = "/placeholder.jpg"; }} // Handle broken image links
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent opacity-60" />
+                  <div className="absolute top-4 left-4 bg-indigo-600 text-white text-[10px] font-black px-3 py-1.5 rounded-xl uppercase tracking-widest shadow-lg">
+                    {event.category || "General"}
+                  </div>
+                </div>
+
+                <div className="p-6 flex flex-col flex-1 space-y-4">
+                  <div className="flex-1 space-y-2">
+                    <h3 className="text-lg font-black text-white leading-tight uppercase tracking-tight group-hover:text-indigo-400 transition-colors">
+                      {event.title}
+                    </h3>
+                    
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 text-slate-500 text-xs font-bold">
+                        <MapPin size={14} className="text-indigo-500"/> 
+                        {/* FIX: Safe navigation using optional chaining */}
+                        <span className="truncate">{event?.shows?.[0]?.venue?.name || "Venue TBD"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-500 text-xs font-bold">
+                        <Calendar size={14} className="text-indigo-500"/> 
+                        <span>{event?.shows?.length || 0} Showings</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Starts At</span>
+                      <span className="text-white font-black">₹{event.base_price}</span>
+                    </div>
+
+                    <Link 
+                      to={`/booking/event/${event.id}`}
+                      className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-600/20"
+                    >
+                      {event.entry_type === "seat_wise" ? "Book Seats" : "Get Tickets"}
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {!loading && events.length === 0 && (
+            <div className="py-20 text-center border-2 border-dashed border-slate-800 rounded-[40px]">
+              <p className="text-slate-500 font-bold">No active events found at the moment.</p>
+            </div>
+          )}
+        </div>
+      </main>
+
+      <Footer />
     </div>
   );
 };

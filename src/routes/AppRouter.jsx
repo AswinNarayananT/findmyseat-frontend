@@ -71,6 +71,7 @@ function AppRouter() {
           <Route path="/create-event" element={<CreateEvent />} />
           <Route path="/create-event-show/:eventId" element={<CreateEventShow />} />
           <Route path="/event-layout/:eventId" element={<SeatLayoutBuilder />} />
+          
           <Route path="/organizer/verify-tickets/:showId" element={<VerifyTicketsPage />} />
         </Route>
 
