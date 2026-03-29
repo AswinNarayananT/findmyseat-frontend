@@ -34,10 +34,15 @@ export const adminLogin = createAsyncThunk(
 
 export const fetchOrganizerApplications = createAsyncThunk(
   "adminAuth/fetchOrganizerApplications",
-  async (status_filter = null, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
       const response = await api.get("/admin/organizer-applications", {
-        params: status_filter ? { status_filter } : {},
+        params: {
+          status_filter: params.status_filter || undefined,
+          search: params.search || undefined,
+          skip: params.skip || 0,
+          limit: params.limit || 10,
+        },
       });
       return response.data;
     } catch (error) {

@@ -2,6 +2,22 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../api/axios";
 
 
+
+export const fetchMyOrganizerApplication = createAsyncThunk(
+  "organizer/fetchMyOrganizerApplication",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get("/organizers/my-application");
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.detail || 
+        "Failed to fetch your application status"
+      );
+    }
+  }
+);
+
 export const submitOrganizerApplication = createAsyncThunk(
   "organizer/submitApplication",
   async (data, { rejectWithValue }) => {

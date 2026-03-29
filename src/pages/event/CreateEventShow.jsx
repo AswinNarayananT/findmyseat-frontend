@@ -6,11 +6,10 @@ import L from "leaflet";
 import { createEventShow, fetchEvent } from "../../store/event/eventThunk";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
-import { MapPin, Search, Plus, Clock, Users, Navigation, Loader2, Calendar as CalendarIcon, AlertCircle } from "lucide-react";
+import { MapPin, Search, Plus, Clock, Navigation, Loader2, Calendar as CalendarIcon, AlertCircle, Repeat, Hash, Timer } from "lucide-react";
 import toast from "react-hot-toast";
 import "leaflet/dist/leaflet.css";
 
-// Leaflet Marker Fix
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -34,9 +33,9 @@ function ChangeMapView({ coords }) {
 export default function CreateEventShow() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { eventId } = useParams(); // This is the ID of the parent Event
+  const { eventId } = useParams();
 
-  const { event, loading } = useSelector(state => state.event);
+  const { event, loading: eventLoading } = useSelector(state => state.event);
   const { user } = useSelector(state => state.auth);
 
   const [location, setLocation] = useState(null);
@@ -45,7 +44,13 @@ export default function CreateEventShow() {
   const [venueName, setVenueName] = useState("");
   const [address, setAddress] = useState("");
   const [capacity, setCapacity] = useState("");
-  const [times, setTimes] = useState([""]); 
+  
+  const [showType, setShowType] = useState("one-time"); 
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [recurringTimes, setRecurringTimes] = useState([""]); 
+  const [oneTimeTimes, setOneTimeTimes] = useState([""]); 
+
   const [formError, setFormError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -53,19 +58,12 @@ export default function CreateEventShow() {
     if (eventId) dispatch(fetchEvent(eventId));
   }, [dispatch, eventId]);
 
-  useEffect(() => {
-    if (event && user && event.organizer_id !== user.id) {
-      toast.error("Unauthorized access");
-      navigate("/my-events");
-    }
-  }, [event, user, navigate]);
-
   const searchLocation = async () => {
     if (!search) return;
     try {
         const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(search)}&format=json&addressdetails=1`);
         const data = await res.json();
-        setResults(data);
+        setResults(Array.isArray(data) ? data : []);
     } catch (err) {
         toast.error("Location search failed");
     }
@@ -79,51 +77,78 @@ export default function CreateEventShow() {
     setResults([]);
   };
 
-  const validateTimes = () => {
-    if (!event) return { valid: false, msg: "Event data not loaded." };
-
-    const duration = event.estimated_duration_minutes;
-    const buffer = 15;
+  const generateRecurringDates = () => {
+    const start = new Date(fromDate);
+    const end = new Date(toDate);
     const now = new Date();
+    const generatedTimes = [];
 
-    const sortedTimes = times
-      .filter(t => t !== "")
-      .map(t => new Date(t))
-      .sort((a, b) => a.getTime() - b.getTime());
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      recurringTimes.forEach(time => {
+        if (time) {
+          const [hours, minutes] = time.split(':');
+          const fullDate = new Date(d);
+          fullDate.setHours(parseInt(hours), parseInt(minutes), 0);
+          
+          if (fullDate > now) {
+            generatedTimes.push(fullDate.toISOString());
+          }
+        }
+      });
+    }
+    return generatedTimes;
+  };
 
-    if (sortedTimes.length === 0) return { valid: false, msg: "At least one show time is required." };
+  const validateTimes = () => {
+    const now = new Date();
+    now.setSeconds(0, 0);
 
-    for (let i = 0; i < sortedTimes.length; i++) {
-      // 1. Past Date Check
-      if (sortedTimes[i] < now) {
-        return { valid: false, msg: `Show ${i + 1} cannot be in the past.` };
+    if (showType === "recurring") {
+      if (!fromDate || !toDate || recurringTimes.some(t => !t)) {
+        return { valid: false, msg: "Please fill in the date range and all daily times." };
+      }
+      
+      const startDateObj = new Date(fromDate);
+      startDateObj.setHours(23, 59, 59); // Allow selecting today
+      if (startDateObj < now) {
+        return { valid: false, msg: "Start date cannot be in the past." };
       }
 
-      // 2. Conflict Check
-      if (i < sortedTimes.length - 1) {
-        const currentShowEnd = sortedTimes[i].getTime() + (duration + buffer) * 60000;
-        if (sortedTimes[i + 1].getTime() < currentShowEnd) {
-          return {
-            valid: false,
-            msg: `Conflict: Show ${i + 1} ends too close to Show ${i + 2}. (Required: Duration + 15m buffer)`
-          };
-        }
+      if (new Date(fromDate) > new Date(toDate)) {
+        return { valid: false, msg: "End date cannot be before start date." };
+      }
+      return { valid: true };
+    }
+
+    if (oneTimeTimes.some(t => !t)) {
+      return { valid: false, msg: "Please provide all show dates and times." };
+    }
+
+    for (let t of oneTimeTimes) {
+      if (new Date(t) < now) {
+        return { valid: false, msg: "One-time shows cannot be scheduled in the past." };
       }
     }
+
     return { valid: true };
   };
 
   const submit = async () => {
     setFormError(null);
-
-    if (!location) return setFormError("Please select a venue on the map.");
+    if (!location) return setFormError("Select a venue on the map.");
     if (!venueName || !capacity) return setFormError("Venue details and capacity are required.");
 
     const validation = validateTimes();
     if (!validation.valid) return setFormError(validation.msg);
 
+    let finalStartTimes = showType === "recurring" ? generateRecurringDates() : oneTimeTimes;
+
+    if (finalStartTimes.length === 0) {
+        return setFormError("No valid future show times generated.");
+    }
+
     setIsSubmitting(true);
-    const payload = {
+    const data = {
       event_id: eventId,
       venue: {
         name: venueName,
@@ -131,16 +156,13 @@ export default function CreateEventShow() {
         latitude: location.lat,
         longitude: location.lng
       },
-      capacity: Number(capacity),
-      start_times: times.filter(t => t)
+      capacity: capacity,
+      start_times: finalStartTimes
     };
 
     try {
-      await dispatch(createEventShow(payload)).unwrap();
-      toast.success("Shows scheduled successfully!");
-
-      // NAVIGATE WITH eventId
-      // This allows the LayoutBuilder to fetch all shows for this specific event
+      await dispatch(createEventShow(data)).unwrap();
+      toast.success("Shows scheduled!");
       navigate(`/event-layout/${eventId}`);
     } catch (err) {
       toast.error(err || "Failed to create shows");
@@ -149,10 +171,17 @@ export default function CreateEventShow() {
     }
   };
 
+  if (eventLoading || !event) {
+    return (
+      <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+        <Loader2 className="animate-spin text-indigo-600" size={48} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#020617] flex flex-col text-slate-200">
       <Navbar />
-
       <main className="flex-1 p-6 md:p-12">
         <div className="max-w-[1400px] mx-auto space-y-10">
           <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -161,27 +190,18 @@ export default function CreateEventShow() {
                 Finalize <span className="text-indigo-600">Schedule</span>
               </h1>
               <p className="text-slate-500 font-medium mt-2 uppercase text-[10px] tracking-[0.3em]">
-                Event: <span className="text-white">{event?.title || "Loading..."}</span>
+                Event: <span className="text-white">{event.title}</span>
               </p>
-            </div>
-
-            <div className="flex items-center gap-3 bg-indigo-600/10 border border-indigo-600/20 px-4 py-2 rounded-2xl">
-              <Clock size={16} className="text-indigo-400" />
-              <span className="text-xs font-black text-indigo-400 uppercase tracking-widest">
-                Duration: {event?.estimated_duration_minutes}m + 15m Buffer
-              </span>
             </div>
           </header>
 
           <div className="grid lg:grid-cols-12 gap-10">
-            {/* LEFT: Venue & Map */}
             <div className="lg:col-span-7 space-y-8 bg-slate-900/40 border border-slate-800 rounded-[48px] p-8 shadow-2xl backdrop-blur-sm">
               <div className="space-y-6">
                 <div className="flex items-center gap-2 text-indigo-500 font-black uppercase text-[10px] tracking-[0.3em]">
                   <MapPin size={16} />
                   <span>Venue Picker</span>
                 </div>
-
                 <div className="relative flex gap-3">
                   <div className="relative flex-1">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700" size={18} />
@@ -190,14 +210,13 @@ export default function CreateEventShow() {
                       onChange={(e) => setSearch(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && searchLocation()}
                       placeholder="Search for venue location..."
-                      className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-indigo-600 outline-none transition-all font-bold text-white placeholder:text-slate-700"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-indigo-600 outline-none font-bold text-white placeholder:text-slate-700"
                     />
                   </div>
                   <button onClick={searchLocation} className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">
                     Search
                   </button>
-
-                  {results.length > 0 && (
+                  {results?.length > 0 && (
                     <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl z-[1000] max-h-60 overflow-y-auto">
                       {results.map((r, i) => (
                         <div key={i} onClick={() => selectPlace(r)} className="p-4 border-b border-slate-800 hover:bg-indigo-600/10 cursor-pointer text-sm font-medium transition-colors text-slate-300">
@@ -207,7 +226,6 @@ export default function CreateEventShow() {
                     </div>
                   )}
                 </div>
-
                 <div className="rounded-[32px] overflow-hidden border-4 border-slate-950 shadow-2xl h-[400px]">
                   <MapContainer center={[20.5937, 78.9629]} zoom={5} className="h-full w-full z-0">
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -219,74 +237,91 @@ export default function CreateEventShow() {
               </div>
             </div>
 
-            {/* RIGHT: Show Details & Timing */}
             <div className="lg:col-span-5 bg-slate-900/40 border border-slate-800 rounded-[48px] p-8 md:p-10 shadow-2xl backdrop-blur-sm space-y-8">
               <div className="flex items-center gap-2 text-indigo-500 font-black uppercase text-[10px] tracking-[0.3em]">
                 <Navigation size={16} />
-                <span>Show Details</span>
+                <span>Show Configuration</span>
               </div>
 
-              <div className="space-y-5">
-                <div>
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Venue Name</label>
-                  <input
-                    value={venueName}
-                    onChange={(e) => setVenueName(e.target.value)}
-                    className="w-full mt-2 bg-slate-950 p-4 rounded-2xl border border-slate-800 outline-none focus:border-indigo-600 font-bold text-sm text-white"
-                  />
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Venue Name</label>
+                    <input value={venueName} onChange={(e) => setVenueName(e.target.value)} className="w-full mt-2 bg-slate-950 p-4 rounded-2xl border border-slate-800 outline-none font-bold text-sm text-white" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Capacity</label>
+                    <input type="number" value={capacity} onChange={(e) => setCapacity(e.target.value)} className="w-full mt-2 bg-slate-950 p-4 rounded-2xl border border-slate-800 outline-none font-bold text-sm text-white" />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Capacity</label>
-                  <input
-                    type="number"
-                    value={capacity}
-                    onChange={(e) => setCapacity(e.target.value)}
-                    className="w-full mt-2 bg-slate-950 p-4 rounded-2xl border border-slate-800 outline-none focus:border-indigo-600 font-bold text-sm text-white"
-                  />
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Show Frequency</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button type="button" onClick={() => setShowType("one-time")} className={`flex items-center justify-center gap-2 py-4 rounded-2xl border font-black text-[10px] uppercase tracking-widest transition-all ${showType === 'one-time' ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'}`}>
+                      <Hash size={14} /> One-Time
+                    </button>
+                    <button type="button" onClick={() => setShowType("recurring")} className={`flex items-center justify-center gap-2 py-4 rounded-2xl border font-black text-[10px] uppercase tracking-widest transition-all ${showType === 'recurring' ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'}`}>
+                      <Repeat size={14} /> Recurring
+                    </button>
+                  </div>
                 </div>
 
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 flex justify-between">
-                    <span>Show Date & Time</span>
-                  </label>
-
-                  {times.map((t, i) => (
-                    <div key={i} className="flex gap-2 animate-in slide-in-from-right-4 duration-300">
-                      <div className="relative flex-1">
-                        <CalendarIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-                        <input
-                          type="datetime-local"
-                          value={t}
-                          onClick={(e) => e.target.showPicker && e.target.showPicker()}
-                          onChange={(e) => {
-                            const updated = [...times];
+                <div className="space-y-4 pt-4 border-t border-slate-800/50">
+                  {showType === "one-time" ? (
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Specific Showtimes</label>
+                      {oneTimeTimes?.map((t, i) => (
+                        <div key={i} className="flex gap-2">
+                          <input type="datetime-local" value={t} onChange={(e) => {
+                            const updated = [...oneTimeTimes];
                             updated[i] = e.target.value;
-                            setTimes(updated);
-                          }}
-                          className="w-full bg-slate-950 p-4 pl-12 rounded-2xl border border-slate-800 outline-none focus:border-indigo-600 font-bold text-sm text-white [color-scheme:dark]"
-                        />
-                      </div>
-
-                      {times.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => setTimes(times.filter((_, idx) => idx !== i))}
-                          className="px-4 bg-red-500/10 text-red-500 rounded-2xl border border-red-500/20 hover:bg-red-500 hover:text-white transition-all font-black"
-                        >
-                          &times;
-                        </button>
-                      )}
+                            setOneTimeTimes(updated);
+                          }} className="flex-1 bg-slate-950 p-4 rounded-2xl border border-slate-800 outline-none font-bold text-sm text-white [color-scheme:dark]" />
+                          {oneTimeTimes.length > 1 && (
+                            <button type="button" onClick={() => setOneTimeTimes(oneTimeTimes.filter((_, idx) => idx !== i))} className="px-4 bg-red-500/10 text-red-500 rounded-2xl border border-red-500/20 hover:bg-red-500 transition-all font-bold">&times;</button>
+                          )}
+                        </div>
+                      ))}
+                      <button type="button" onClick={() => setOneTimeTimes([...oneTimeTimes, ""])} className="flex items-center gap-2 text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-2 hover:text-white transition-colors">
+                        <Plus size={14} /> Add Another Showtime
+                      </button>
                     </div>
-                  ))}
-
-                  <button
-                    type="button"
-                    onClick={() => setTimes([...times, ""])}
-                    className="flex items-center gap-2 text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-2 hover:text-white transition-colors"
-                  >
-                    <Plus size={14} /> Add Another Showtime
-                  </button>
+                  ) : (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Start Date</label>
+                          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full bg-slate-950 p-4 rounded-2xl border border-slate-800 outline-none font-bold text-sm text-white [color-scheme:dark]" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">End Date</label>
+                          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full bg-slate-950 p-4 rounded-2xl border border-slate-800 outline-none font-bold text-sm text-white [color-scheme:dark]" />
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Daily Show Times</label>
+                        {recurringTimes?.map((t, i) => (
+                          <div key={i} className="flex gap-2">
+                            <div className="relative flex-1">
+                              <Timer size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                              <input type="time" value={t} onChange={(e) => {
+                                const updated = [...recurringTimes];
+                                updated[i] = e.target.value;
+                                setRecurringTimes(updated);
+                              }} className="w-full bg-slate-950 p-4 pl-12 rounded-2xl border border-slate-800 outline-none font-bold text-sm text-white [color-scheme:dark]" />
+                            </div>
+                            {recurringTimes.length > 1 && (
+                              <button type="button" onClick={() => setRecurringTimes(recurringTimes.filter((_, idx) => idx !== i))} className="px-4 bg-red-500/10 text-red-500 rounded-2xl border border-red-500/20 hover:bg-red-500 transition-all font-bold">&times;</button>
+                            )}
+                          </div>
+                        ))}
+                        <button type="button" onClick={() => setRecurringTimes([...recurringTimes, ""])} className="flex items-center gap-2 text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-2 hover:text-white transition-colors">
+                          <Plus size={14} /> Add Another Time
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -298,9 +333,10 @@ export default function CreateEventShow() {
               )}
 
               <button
+                type="button"
                 onClick={submit}
-                disabled={isSubmitting || loading}
-                className="w-full py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-600/20 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3"
+                disabled={isSubmitting}
+                className="w-full py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3"
               >
                 {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : "Design Layout"}
               </button>
@@ -308,7 +344,6 @@ export default function CreateEventShow() {
           </div>
         </div>
       </main>
-
       <Footer />
     </div>
   );

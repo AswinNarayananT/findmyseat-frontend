@@ -9,13 +9,11 @@ import {
 } from "./adminAuthThunks";
 
 const initialState = {
-  // ─── Auth State ─────────────────────────
   admin: null,
   isAuthenticated: false,
   authLoading: false,
   authError: null,
 
-  // ─── Organizer Applications State ───────
   applications: [],
   applicationDetail: null,
   listLoading: false,
@@ -26,10 +24,13 @@ const initialState = {
 const adminAuthSlice = createSlice({
   name: "adminAuth",
   initialState,
-  reducers: {},
+  reducers: {
+    clearApplicationDetail: (state) => {
+      state.applicationDetail = null;
+    },
+  },
   extraReducers: (builder) => {
     builder
-      // GET ADMIN ME
       .addCase(getAdminMe.pending, (state) => {
         state.authLoading = true;
       })
@@ -45,7 +46,6 @@ const adminAuthSlice = createSlice({
         localStorage.removeItem("access_token");
       })
 
-      // ADMIN LOGIN
       .addCase(adminLogin.pending, (state) => {
         state.authLoading = true;
         state.authError = null;
@@ -60,7 +60,6 @@ const adminAuthSlice = createSlice({
         state.authError = action.payload;
       })
 
-      // FETCH APPLICATION LIST
       .addCase(fetchOrganizerApplications.pending, (state) => {
         state.listLoading = true;
         state.organizerError = null;
@@ -74,7 +73,6 @@ const adminAuthSlice = createSlice({
         state.organizerError = action.payload;
       })
 
-      // FETCH APPLICATION DETAIL
       .addCase(fetchOrganizerApplicationDetail.pending, (state) => {
         state.detailLoading = true;
         state.organizerError = null;
@@ -88,7 +86,6 @@ const adminAuthSlice = createSlice({
         state.organizerError = action.payload;
       })
 
-      // UPDATE ORGANIZER APPLICATION STATUS
       .addCase(updateOrganizerApplicationStatus.pending, (state) => {
         state.detailLoading = true;
         state.organizerError = null;
@@ -96,13 +93,16 @@ const adminAuthSlice = createSlice({
       .addCase(updateOrganizerApplicationStatus.fulfilled, (state, action) => {
         state.detailLoading = false;
         state.applicationDetail = action.payload;
+        const index = state.applications.findIndex(app => app.id === action.payload.id);
+        if (index !== -1) {
+          state.applications[index] = action.payload;
+        }
       })
       .addCase(updateOrganizerApplicationStatus.rejected, (state, action) => {
         state.detailLoading = false;
         state.organizerError = action.payload;
       })
 
-      // ADMIN LOGOUT
       .addCase(adminLogout.pending, (state) => {
         state.authLoading = true;
       })
@@ -121,4 +121,5 @@ const adminAuthSlice = createSlice({
   },
 });
 
+export const { clearApplicationDetail } = adminAuthSlice.actions;
 export default adminAuthSlice.reducer;
