@@ -104,3 +104,30 @@ export const adminLogout = createAsyncThunk(
     }
   }
 );
+
+
+export const fetchAdminFinanceDashboard = createAsyncThunk(
+  "adminFinance/fetchDashboard",
+  async ({ page = 1, limit = 10, organizerId, month, year }, { rejectWithValue }) => {
+    try {
+
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+
+      if (organizerId) params.append("organizer_id", organizerId);
+      if (month) params.append("month", month.toString());
+      if (year) params.append("year", year.toString());
+
+      const response = await api.get(`/admin/finance/global-summary?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.detail || 
+        error.message || 
+        "Failed to fetch admin finance data"
+      );
+    }
+  }
+);

@@ -226,3 +226,47 @@ export const fetchUserBookings = createAsyncThunk(
     }
   }
 );
+
+export const submitEventReview = createAsyncThunk(
+  "event/submitReview",
+  async ({ eventId, rating, comment }, { rejectWithValue }) => {
+    try {
+      const response = await api.post(`/events/${eventId}/reviews`, {
+        rating,
+        comment,
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.detail || 
+        error.message || 
+        "Failed to submit review"
+      );
+    }
+  }
+);
+
+
+export const cancelEventShow = createAsyncThunk(
+  "event/cancelShow",
+  async ({ showId, reason }, { rejectWithValue }) => {
+    try {
+      const response = await api.post(`/organizers/show/${showId}/cancel`, { reason });
+      return { showId, data: response.data };
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.detail || "Failed to cancel show");
+    }
+  }
+);
+
+export const cancelFullEvent = createAsyncThunk(
+  "event/cancelEvent",
+  async ({ eventId, reason }, { rejectWithValue }) => {
+    try {
+      const response = await api.post(`/organizers/event/${eventId}/cancel`, { reason });
+      return { eventId, data: response.data };
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.detail || "Failed to cancel event");
+    }
+  }
+);

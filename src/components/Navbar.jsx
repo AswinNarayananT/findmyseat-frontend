@@ -1,3 +1,4 @@
+import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
 import { logoutUser } from "../store/auth/authThunks";
@@ -36,7 +37,6 @@ function Navbar() {
     <header className="sticky top-0 z-50 border-b border-[#282e39] bg-background-dark/80 backdrop-blur-md">
       <div className="flex items-center justify-between px-6 md:px-10 py-4 max-w-[1440px] mx-auto">
         
-        {/* Logo Section */}
         <Link to="/" className="flex items-center gap-3 text-white">
           <div className="size-8">
             <img
@@ -50,7 +50,6 @@ function Navbar() {
           </h2>
         </Link>
 
-        {/* Navigation Links */}
         <nav className="hidden md:flex gap-8 items-center">
           {isAuthenticated && (
             <>
@@ -59,6 +58,13 @@ function Navbar() {
                 className="text-sm font-medium text-[#9ca6ba] hover:text-white transition-colors cursor-pointer"
               >
                 Events
+              </Link>
+
+              <Link
+                to="/profile/bookings"
+                className="text-sm font-medium text-[#9ca6ba] hover:text-white transition-colors cursor-pointer"
+              >
+                My Bookings
               </Link>
 
               <button
@@ -70,15 +76,23 @@ function Navbar() {
 
               <button
                 onClick={() => handleOrganizerNavigation("/create-event")}
-                className="text-sm font-semibold text-indigo-500 hover:text-white transition-colors duration-200 cursor-pointer bg-transparent border-none p-0 outline-none"
+                className="text-sm font-semibold text-[#9ca6ba] hover:text-white transition-colors duration-200 cursor-pointer bg-transparent border-none p-0 outline-none"
               >
                 Add Event
               </button>
+
+              {user?.role === "organizer" && (
+                <Link
+                  to="/revenue"
+                  className="text-sm font-semibold text-[#9ca6ba] hover:text-white transition-colors duration-200 cursor-pointer bg-transparent border-none p-0 outline-none"
+                >
+                  Revenue
+                </Link>
+              )}
             </>
           )}
         </nav>
 
-        {/* Auth & Notification Section */}
         <div className="flex items-center gap-4">
           {!isAuthenticated ? (
             <>
@@ -98,10 +112,8 @@ function Navbar() {
             </>
           ) : (
             <>
-              {/* REAL-TIME NOTIFICATION SYSTEM */}
               <NotificationCenter />
 
-              {/* User Profile */}
               <Link
                 to="/profile"
                 className="flex items-center gap-2 bg-[#1E1E1E] border border-[#282e39] rounded-lg px-3 py-2 hover:bg-[#282e39] transition-all cursor-pointer"
@@ -115,7 +127,6 @@ function Navbar() {
                 </span>
               </Link>
 
-              {/* Logout Button */}
               <button
                 onClick={handleLogout}
                 className="px-4 py-2 text-sm font-semibold text-white bg-[#1E1E1E] border border-[#282e39] rounded-lg hover:bg-red-600 hover:border-red-600 transition-all duration-200 cursor-pointer"

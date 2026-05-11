@@ -28,6 +28,7 @@ import PublicRoute from "./PublicRoute";
 import AdminRoute from "./AdminRoute";
 import Profile from "../pages/profile/profile";
 import VerifyTicketsPage from "../pages/organizer/VerifyTicketsPage";
+import Revenue from "../pages/organizer/Revenue";
 
 function AppRouter() {
   return (
@@ -45,7 +46,7 @@ function AppRouter() {
         {/* --- Public Access Routes --- */}
         <Route path="/" element={<Home />} />
         <Route path="/public-events" element={<EventDiscoveryPage />} />
-        <Route path="/event/:eventId" element={<EventDetailPage />} />
+        
 
         {/* --- Guest Only Routes (Login/Signup/etc) --- */}
         <Route element={<PublicRoute />}>
@@ -68,9 +69,11 @@ function AppRouter() {
           <Route path="/organizer-application" element={<OrganizerApplication />} />
           <Route path="/application-success" element={<ApplicationSuccess />} />
           <Route path="/my-events" element={<MyEvents />} />
+          <Route path="/event/:eventId" element={<EventDetailPage />} />
           <Route path="/create-event" element={<CreateEvent />} />
           <Route path="/create-event-show/:eventId" element={<CreateEventShow />} />
           <Route path="/event-layout/:eventId" element={<SeatLayoutBuilder />} />
+           <Route path="/revenue" element={<Revenue />} />
           
           <Route path="/organizer/verify-tickets/:showId" element={<VerifyTicketsPage />} />
         </Route>

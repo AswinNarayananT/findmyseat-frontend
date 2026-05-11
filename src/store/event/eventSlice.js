@@ -13,6 +13,8 @@ import {
   verifyBookingPayment,
   checkActiveUserLock,
   fetchUserBookings,
+  cancelEventShow,
+  cancelFullEvent,
 } from "./eventThunk";
 
 const initialState = {
@@ -192,9 +194,38 @@ const eventSlice = createSlice({
       })
       .addCase(fetchUserBookings.fulfilled, (state, action) => {
         state.loading = false;
-        state.bookings = action.payload; 
+        state.bookings = action.payload;
       })
       .addCase(fetchUserBookings.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      .addCase(cancelEventShow.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(cancelEventShow.fulfilled, (state, action) => {
+        state.loading = false;
+        state.eventShows = state.eventShows.map((show) =>
+          show.id === action.payload.showId ? { ...show, is_cancelled: true } : show
+        );
+      })
+      .addCase(cancelEventShow.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      .addCase(cancelFullEvent.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(cancelFullEvent.fulfilled, (state) => {
+        state.loading = false;
+        if (state.event) state.event.is_cancelled = true;
+        state.eventShows = state.eventShows.map((show) => ({ ...show, is_cancelled: true }));
+      })
+      .addCase(cancelFullEvent.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });
