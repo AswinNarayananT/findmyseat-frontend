@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { createSeatLayout, fetchFullEventDetails } from "../../store/event/eventThunk";
-import { Plus, Trash2, LayoutGrid, MousePointer2, Eraser, Square, Calendar, Users, CheckCircle2, Circle, AlertCircle } from "lucide-react";
+import { Plus, Trash2, LayoutGrid, MousePointer2, Eraser, Square, Calendar, Users, CheckCircle2, Circle, AlertCircle, Info } from "lucide-react";
 import toast from "react-hot-toast";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
@@ -12,13 +12,12 @@ const SeatLayoutBuilder = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     
-    const { eventShows } = useSelector((state) => state.event);
+    const { event, loading } = useSelector((state) => state.event);
 
     const [rows, setRows] = useState(10);
     const [cols, setCols] = useState(12);
     const [grid, setGrid] = useState([]);
     const [isMouseDown, setIsMouseDown] = useState(false);
-    const [selectedShowIds, setSelectedShowIds] = useState([]);
 
     const [sections, setSections] = useState([
         { name: "Premium", price: 500, display_order: 1, color: "#f59e0b" },
@@ -29,9 +28,7 @@ const SeatLayoutBuilder = () => {
     const [mode, setMode] = useState("seat");
 
     useEffect(() => {
-        if (eventId) {
-            dispatch(fetchFullEventDetails(eventId));
-        }
+        if (eventId) dispatch(fetchFullEventDetails(eventId));
     }, [eventId, dispatch]);
 
     const generateGrid = useCallback(() => {
@@ -50,6 +47,37 @@ const SeatLayoutBuilder = () => {
         generateGrid();
     }, [generateGrid]);
 
+    useEffect(() => {
+        if (event?.shows?.[0]?.seat_layout) {
+            const layout = event.shows.find(s => s.seat_layout)?.seat_layout;
+            if (layout) {
+                setRows(layout.rows);
+                setCols(layout.columns);
+                setSections(layout.sections.map(s => ({...s})));
+                
+                const initialGrid = Array.from({ length: layout.rows }, (_, r) =>
+                    Array.from({ length: layout.columns }, (_, c) => {
+                        const seat = layout.seats.find(s => s.x_position === c && s.y_position === r);
+                        const sIdx = layout.sections.findIndex(sec => sec.id === seat?.section_id);
+                        return {
+                            x: c,
+                            y: r,
+                            seat_type: seat?.seat_type || "empty",
+                            section_index: sIdx !== -1 ? sIdx : null
+                        };
+                    })
+                );
+                setGrid(initialGrid);
+            }
+        }
+    }, [event]);
+
+    const updateSection = (index, field, value) => {
+        const updated = [...sections];
+        updated[index][field] = value;
+        setSections(updated);
+    };
+
     const addSection = () => {
         const newSection = {
             name: `Category ${sections.length + 1}`,
@@ -58,12 +86,6 @@ const SeatLayoutBuilder = () => {
             color: `#${Math.floor(Math.random() * 16777215).toString(16)}`
         };
         setSections([...sections, newSection]);
-    };
-
-    const updateSection = (index, field, value) => {
-        const updated = [...sections];
-        updated[index][field] = value;
-        setSections(updated);
     };
 
     const deleteSection = (index) => {
@@ -79,7 +101,6 @@ const SeatLayoutBuilder = () => {
         setGrid((prevGrid) => {
             const newGrid = prevGrid.map((row) => row.map((cell) => ({ ...cell })));
             const cell = newGrid[r][c];
-
             if (mode === "seat") {
                 cell.seat_type = "seat";
                 cell.section_index = selectedSectionIndex;
@@ -94,38 +115,20 @@ const SeatLayoutBuilder = () => {
         });
     };
 
-    const currentSeatCount = useMemo(() => {
-        return grid.flat().filter(cell => cell.seat_type === "seat").length;
-    }, [grid]);
-
-    const minSelectedCapacity = useMemo(() => {
-        const selected = (eventShows || []).filter(s => selectedShowIds.includes(s.id));
-        if (selected.length === 0) return Infinity;
-        return Math.min(...selected.map(s => s.capacity));
-    }, [selectedShowIds, eventShows]);
-
-    const isOverCapacity = currentSeatCount > minSelectedCapacity;
-
-    const toggleShowSelection = (id) => {
-        setSelectedShowIds(prev => 
-            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-        );
-    };
-
-    const selectAllShows = () => {
-        if (selectedShowIds.length === (eventShows || []).length) {
-            setSelectedShowIds([]);
-        } else {
-            setSelectedShowIds(eventShows.map(s => s.id));
-        }
-    };
+    const currentSeatCount = useMemo(() => grid.flat().filter(cell => cell.seat_type === "seat").length, [grid]);
+    const minShowCapacity = useMemo(() => (event?.shows?.length ? Math.min(...event.shows.map(s => s.capacity)) : Infinity), [event]);
+    const isOverCapacity = currentSeatCount > minShowCapacity;
 
     const handleSave = async () => {
-        if (selectedShowIds.length === 0) return toast.error("Select at least one show.");
+        if (isOverCapacity) {
+            return toast.error(`Layout exceeds capacity! Please remove ${currentSeatCount - minShowCapacity} seats.`);
+        }
+        if (currentSeatCount === 0) {
+            return toast.error("Please add at least one seat to the layout.");
+        }
         
         const seats = [];
         let currentRowChar = 65; 
-
         grid.forEach((row, r) => {
             const hasSeats = row.some(cell => cell.seat_type === "seat");
             const rowLabel = hasSeats ? String.fromCharCode(currentRowChar) : null;
@@ -147,7 +150,7 @@ const SeatLayoutBuilder = () => {
         const payload = { 
             rows: Number(rows), 
             columns: Number(cols), 
-            event_show_ids: selectedShowIds, 
+            event_show_ids: event.shows.map(s => s.id), 
             sections: sections.map(s => ({
                 name: s.name,
                 price: Number(s.price),
@@ -169,36 +172,24 @@ const SeatLayoutBuilder = () => {
     return (
         <div className="min-h-screen bg-[#020617] flex flex-col text-slate-200" onMouseUp={() => setIsMouseDown(false)}>
             <Navbar />
-            
             <div className="flex-1 p-6">
                 <div className="max-w-[1600px] mx-auto grid grid-cols-12 gap-6">
-
-                    {/* Sidebar */}
                     <aside className="col-span-3 space-y-4 h-[85vh] overflow-y-auto pr-2 custom-scrollbar">
+                        {isOverCapacity && (
+                            <div className="bg-rose-500/10 border border-rose-500/50 p-4 rounded-2xl animate-pulse">
+                                <div className="flex items-center gap-2 text-rose-400 mb-1">
+                                    <AlertCircle size={18} />
+                                    <span className="text-xs font-black uppercase">Capacity Exceeded</span>
+                                </div>
+                                <p className="text-[10px] text-rose-300/80 leading-relaxed font-bold">
+                                    Your current layout has {currentSeatCount} seats, which exceeds the show capacity of {minShowCapacity}. Remove {currentSeatCount - minShowCapacity} seats before publishing.
+                                </p>
+                            </div>
+                        )}
+
                         <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-sm font-black uppercase text-slate-500 tracking-widest">Apply to Shows</h2>
-                                <button onClick={selectAllShows} className="text-[10px] text-indigo-400 font-black">
-                                    {(selectedShowIds.length === (eventShows || []).length && eventShows?.length > 0) ? "DESELECT ALL" : "SELECT ALL"}
-                                </button>
-                            </div>
-                            <div className="space-y-2 max-h-48 overflow-y-auto mb-4">
-                                {(eventShows || []).map((show) => (
-                                    <div 
-                                        key={show.id}
-                                        onClick={() => toggleShowSelection(show.id)}
-                                        className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                                            selectedShowIds.includes(show.id) ? 'bg-indigo-500/10 border-indigo-500' : 'bg-slate-950 border-slate-800'
-                                        }`}
-                                    >
-                                        <div>
-                                            <p className="text-[10px] font-black flex items-center gap-1"><Calendar size={12}/> {new Date(show.start_time).toLocaleString()}</p>
-                                            <p className="text-[10px] text-slate-500 font-bold flex items-center gap-1"><Users size={12}/> Capacity: {show.capacity}</p>
-                                        </div>
-                                        {selectedShowIds.includes(show.id) ? <CheckCircle2 size={16} className="text-indigo-400" /> : <Circle size={16} className="text-slate-700" />}
-                                    </div>
-                                ))}
-                            </div>
+                            <h2 className="text-xs font-black uppercase text-indigo-400 tracking-widest mb-2">Sync Status</h2>
+                            <p className="text-[10px] text-slate-400 italic">Grid dimension changes will reset the layout.</p>
                         </div>
 
                         <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
@@ -245,7 +236,6 @@ const SeatLayoutBuilder = () => {
                         </div>
                     </aside>
 
-                    {/* Main Canvas Area */}
                     <main className="col-span-9 flex flex-col gap-6">
                         <header className="flex justify-between items-center bg-slate-900 p-5 rounded-[2rem] border border-slate-800 shadow-xl">
                             <div className="flex gap-4 items-center">
@@ -260,31 +250,25 @@ const SeatLayoutBuilder = () => {
                                         <Eraser size={14} /> Eraser
                                     </button>
                                 </div>
-                                
-                                <div className={`flex items-center gap-4 px-6 py-2 rounded-2xl border ${isOverCapacity ? 'border-red-500 bg-red-500/10' : 'border-slate-800 bg-slate-950'}`}>
-                                    <div>
-                                        <p className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Painted Capacity</p>
-                                        <p className={`text-sm font-black ${isOverCapacity ? 'text-red-400' : 'text-white'}`}>{currentSeatCount} / {minSelectedCapacity === Infinity ? '--' : minSelectedCapacity}</p>
-                                    </div>
-                                    {isOverCapacity && <AlertCircle size={18} className="text-red-500 animate-pulse" />}
+                                <div className={`flex items-center gap-4 px-6 py-2 rounded-2xl border transition-colors ${isOverCapacity ? 'border-rose-500 bg-rose-500/10' : 'border-slate-800 bg-slate-950'}`}>
+                                    <p className={`text-sm font-black ${isOverCapacity ? 'text-rose-400' : 'text-white'}`}>
+                                        {currentSeatCount} / {minShowCapacity === Infinity ? '--' : minShowCapacity}
+                                    </p>
+                                    {isOverCapacity && <AlertCircle size={18} className="text-rose-500 animate-bounce" />}
                                 </div>
                             </div>
-
                             <button 
                                 onClick={handleSave} 
-                                disabled={selectedShowIds.length === 0 || isOverCapacity} 
-                                className="px-10 py-3 bg-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-indigo-500 text-white font-black uppercase text-xs tracking-[0.2em] rounded-2xl shadow-xl shadow-indigo-600/20 transition-all active:scale-95"
+                                className={`px-10 py-3 font-black uppercase text-xs tracking-[0.2em] rounded-2xl shadow-xl transition-all active:scale-95 ${isOverCapacity ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`}
                             >
                                 Publish Layout
                             </button>
                         </header>
 
-                        {/* Grid Canvas */}
                         <div className="flex-1 bg-slate-950 rounded-[3rem] border border-slate-800 p-16 overflow-auto flex flex-col items-center shadow-inner relative">
                             <div className="w-1/2 h-2 bg-indigo-500/10 rounded-full mb-20 relative flex justify-center shadow-[0_0_50px_rgba(99,102,241,0.1)]">
                                 <span className="absolute -bottom-10 text-[10px] text-indigo-500/50 font-black tracking-[1.5em] uppercase italic">Stage / Screen</span>
                             </div>
-
                             <div className="inline-block bg-slate-900/10 p-10 rounded-[2.5rem] border border-slate-800/50">
                                 {grid.map((row, r) => (
                                     <div key={r} className="flex items-center gap-2 mb-2">
@@ -317,7 +301,6 @@ const SeatLayoutBuilder = () => {
                     </main>
                 </div>
             </div>
-
             <Footer />
         </div>
     );

@@ -84,9 +84,17 @@ const EventDiscoveryPage = () => {
                         {/* FIX: Safe navigation using optional chaining */}
                         <span className="truncate">{event?.shows?.[0]?.venue?.name || "Venue TBD"}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-slate-500 text-xs font-bold">
+                      <div className="flex flex-wrap items-center gap-2 text-slate-500 text-xs font-bold">
                         <Calendar size={14} className="text-indigo-500"/> 
-                        <span>{event?.shows?.length || 0} Showings</span>
+                        {event?.shows?.slice(0, 3).map(show => (
+                          <span key={show.id} className="bg-slate-800 px-2 py-1 rounded-md text-[10px]">
+                            {new Date(show.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        ))}
+                        {event?.shows?.length > 3 && (
+                          <span className="text-[10px] text-slate-500">+{event.shows.length - 3} more</span>
+                        )}
+                        {event?.shows?.length === 0 && <span>No upcoming shows</span>}
                       </div>
                     </div>
                   </div>

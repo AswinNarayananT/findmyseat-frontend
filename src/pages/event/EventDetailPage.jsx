@@ -49,11 +49,11 @@ const EventDetailPage = () => {
     
     try {
       if (cancelModal.type === "event") {
-        await dispatch(cancelFullEvent({ eventId: cancelModal.targetId, reason: cancelReason })).unwrap();
-        toast.success("Event cancelled successfully.");
+        const res = await dispatch(cancelFullEvent({ eventId: cancelModal.targetId, reason: cancelReason })).unwrap();
+        toast.success(res.data.message || "Event cancelled successfully.");
       } else {
-        await dispatch(cancelEventShow({ showId: cancelModal.targetId, reason: cancelReason })).unwrap();
-        toast.success("Show cancelled successfully.");
+        const res = await dispatch(cancelEventShow({ showId: cancelModal.targetId, reason: cancelReason })).unwrap();
+        toast.success(res.data.message || "Show cancelled successfully.");
       }
       setCancelModal({ show: false, type: null, targetId: null });
       setCancelReason("");
@@ -125,12 +125,6 @@ const EventDetailPage = () => {
                   className="flex items-center gap-3 bg-slate-950/50 hover:bg-indigo-600/10 hover:text-indigo-400 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider border border-slate-800/50 transition-all"
                 >
                   <Layout size={16} className="text-indigo-500"/> Edit Layout
-                </button>
-                <button 
-                  onClick={() => navigate(`/edit-event-details/${eventId}`)}
-                  className="flex items-center gap-3 bg-slate-950/50 hover:bg-indigo-600/10 hover:text-indigo-400 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider border border-slate-800/50 transition-all"
-                >
-                  <Edit3 size={16} className="text-indigo-500"/> Edit Info
                 </button>
               </div>
             </div>

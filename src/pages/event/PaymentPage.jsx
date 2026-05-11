@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { checkActiveUserLock, verifyBookingPayment } from "../../store/event/eventThunk";
+import { checkActiveUserLock, verifyBookingPayment, payWithWallet } from "../../store/event/eventThunk";
 import { Ticket, Clock, ShieldCheck, ChevronLeft, CreditCard, Loader2, AlertCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import Navbar from "../../components/Navbar";
@@ -98,6 +98,18 @@ const PaymentPage = () => {
 
     const rzp = new window.Razorpay(options);
     rzp.open();
+  };
+
+  const handleWalletPay = async () => {
+    setIsVerifying(true);
+    try {
+      await dispatch(payWithWallet()).unwrap();
+      toast.success("Booking Confirmed with Wallet!");
+      navigate("/profile/bookings");
+    } catch (err) {
+      toast.error(err || "Insufficient wallet balance. Choose another option.");
+      setIsVerifying(false);
+    }
   };
 
   if (loading || activeLock === null) {
@@ -222,20 +234,37 @@ const PaymentPage = () => {
                    Ensure you complete the process before the timer hits zero.
                 </p>
                 
-                <button 
-                  onClick={handlePayNow}
-                  disabled={isVerifying}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-indigo-600/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
-                >
-                  {isVerifying ? (
-                    <>
-                      <Loader2 className="animate-spin" size={20} />
-                      VERIFYING...
-                    </>
-                  ) : (
-                    `SECURE PAY • ₹${activeLock.total_price.toLocaleString()}`
-                  )}
-                </button>
+                <div className="space-y-4">
+                  <button 
+                    onClick={handlePayNow}
+                    disabled={isVerifying}
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-indigo-600/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+                  >
+                    {isVerifying ? (
+                      <>
+                        <Loader2 className="animate-spin" size={20} />
+                        VERIFYING...
+                      </>
+                    ) : (
+                      `RAZORPAY • ₹${activeLock.total_price.toLocaleString()}`
+                    )}
+                  </button>
+
+                  <button 
+                    onClick={handleWalletPay}
+                    disabled={isVerifying}
+                    className="w-full bg-slate-800 hover:bg-slate-700 text-white py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-slate-900/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+                  >
+                    {isVerifying ? (
+                      <>
+                        <Loader2 className="animate-spin" size={20} />
+                        VERIFYING...
+                      </>
+                    ) : (
+                      `WALLET PAY • ₹${activeLock.total_price.toLocaleString()}`
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

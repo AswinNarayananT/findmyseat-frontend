@@ -2,18 +2,26 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchPublicEventDetails } from "../../store/event/eventThunk";
-import { Calendar, MapPin, Clock, Ticket, ChevronRight, Info, Star } from "lucide-react";
+import { Calendar, MapPin, Clock, Ticket, ChevronRight, Info, Star, Edit, Trash2, Loader2 } from "lucide-react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
+import api from "../../api/axios";
+import toast from "react-hot-toast";
 
 const BookingPage = () => {
   const { eventId } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { event, loading } = useSelector((state) => state.event);
+  const { user } = useSelector((state) => state.auth);
   
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedShow, setSelectedShow] = useState(null);
+  
+  const [editingReview, setEditingReview] = useState(null);
+  const [editRating, setEditRating] = useState(0);
+  const [editComment, setEditComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     dispatch(fetchPublicEventDetails(eventId));
@@ -36,6 +44,35 @@ const BookingPage = () => {
       setSelectedDate(sortedDates[0]);
     }
   }, [sortedDates, selectedDate]);
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm("Are you sure you want to delete this review?")) return;
+    try {
+      await api.delete(`/events/${eventId}/reviews/${reviewId}`);
+      toast.success("Review deleted!");
+      dispatch(fetchPublicEventDetails(eventId));
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to delete review");
+    }
+  };
+
+  const handleUpdateReview = async () => {
+    if (editRating === 0) return toast.error("Please provide a star rating.");
+    setIsSubmitting(true);
+    try {
+      await api.put(`/events/${eventId}/reviews/${editingReview.id}`, {
+        rating: editRating,
+        comment: editComment
+      });
+      toast.success("Review updated!");
+      setEditingReview(null);
+      dispatch(fetchPublicEventDetails(eventId));
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to update review");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -200,8 +237,113 @@ const BookingPage = () => {
               </div>
             )}
           </div>
+
+          <hr className="border-slate-800/50" />
+
+          {/* Reviews Section */}
+          <div className="space-y-6 max-w-4xl">
+            <h3 className="text-2xl font-black uppercase tracking-widest flex items-center gap-3">
+              <Star className="text-indigo-500 fill-indigo-500" /> Reviews
+            </h3>
+            
+            {event.reviews && event.reviews.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {event.reviews.map(review => (
+                  <div key={review.id} className="bg-slate-900/40 p-6 rounded-[2rem] border border-slate-800 space-y-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-3">
+                        <div className="size-10 rounded-full bg-indigo-600 flex items-center justify-center font-black text-white uppercase shadow-lg shadow-indigo-600/20">
+                          {review.user_name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-bold text-white text-sm">{review.user_name}</p>
+                          <div className="flex gap-1 mt-1">
+                            {[1, 2, 3, 4, 5].map(star => (
+                              <Star key={star} size={12} className={star <= review.rating ? "fill-yellow-500 text-yellow-500" : "text-slate-700"} />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      {user && user.id === review.user_id && (
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => {
+                              setEditingReview(review);
+                              setEditRating(review.rating);
+                              setEditComment(review.comment || "");
+                            }}
+                            className="text-slate-500 hover:text-indigo-400 transition-colors p-1"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteReview(review.id)}
+                            className="text-slate-500 hover:text-red-400 transition-colors p-1"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {review.comment && (
+                      <p className="text-sm text-slate-400 italic">"{review.comment}"</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-slate-900/40 p-10 rounded-[2rem] border border-slate-800 text-center">
+                <p className="text-slate-500 font-bold">No reviews yet for this event.</p>
+              </div>
+            )}
+          </div>
         </div>
       </main>
+
+      {/* Edit Review Modal */}
+      {editingReview && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-[#020617]/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-[32px] p-8 max-w-md w-full shadow-2xl relative">
+            <h2 className="text-2xl font-black text-white uppercase tracking-tighter italic mb-6">Edit Review</h2>
+            
+            <div className="flex justify-center gap-2 mb-6">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  className="transition-transform hover:scale-110 active:scale-95"
+                  onClick={() => setEditRating(star)}
+                >
+                  <Star size={36} className={`transition-colors duration-200 ${editRating >= star ? "fill-yellow-500 text-yellow-500" : "text-slate-700"}`} />
+                </button>
+              ))}
+            </div>
+
+            <textarea
+              value={editComment}
+              onChange={(e) => setEditComment(e.target.value)}
+              placeholder="Update your comment..."
+              className="w-full bg-slate-950 p-4 rounded-2xl border border-slate-800 outline-none font-medium text-sm text-white placeholder:text-slate-600 resize-none h-28 focus:border-indigo-500/50 transition-colors mb-6"
+            />
+
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setEditingReview(null)}
+                className="flex-1 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-[24px] font-black text-xs uppercase tracking-widest transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateReview}
+                disabled={isSubmitting}
+                className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] transition-all flex justify-center items-center gap-2"
+              >
+                {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : "Update"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

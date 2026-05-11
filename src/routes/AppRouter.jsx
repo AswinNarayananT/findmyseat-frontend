@@ -23,12 +23,15 @@ import BookingPage from "../pages/user/BookingPage";
 import SeatSelectionPage from "../pages/user/SeatSelectionPage";
 import PaymentPage from "../pages/event/PaymentPage";
 import BookingHistoryPage from "../pages/profile/BookingHistoryPage";
+import EditEventLocation from "../pages/event/EditEventLocation";
+import EditShowTime from "../pages/event/EditShowTime";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import AdminRoute from "./AdminRoute";
 import Profile from "../pages/profile/profile";
 import VerifyTicketsPage from "../pages/organizer/VerifyTicketsPage";
 import Revenue from "../pages/organizer/Revenue";
+import ReviewPromptManager from "../components/ReviewPromptManager";
 
 function AppRouter() {
   return (
@@ -42,6 +45,7 @@ function AppRouter() {
           },
         }}
       />
+      <ReviewPromptManager />
       <Routes>
         {/* --- Public Access Routes --- */}
         <Route path="/" element={<Home />} />
@@ -72,6 +76,8 @@ function AppRouter() {
           <Route path="/event/:eventId" element={<EventDetailPage />} />
           <Route path="/create-event" element={<CreateEvent />} />
           <Route path="/create-event-show/:eventId" element={<CreateEventShow />} />
+          <Route path="/edit-event-location/:eventId" element={<EditEventLocation />} />
+          <Route path="/events/:eventId/edit-show/:showId" element={<EditShowTime />} />
           <Route path="/event-layout/:eventId" element={<SeatLayoutBuilder />} />
            <Route path="/revenue" element={<Revenue />} />
           

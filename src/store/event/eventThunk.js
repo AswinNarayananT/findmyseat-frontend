@@ -199,6 +199,20 @@ export const verifyBookingPayment = createAsyncThunk(
   }
 );
 
+export const payWithWallet = createAsyncThunk(
+  "event/payWithWallet",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.post("/public/events/booking/pay-with-wallet");
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.detail || "Wallet payment failed"
+      );
+    }
+  }
+);
+
 export const checkActiveUserLock = createAsyncThunk(
   "event/checkActiveUserLock",
   async (_, { rejectWithValue }) => {
@@ -267,6 +281,30 @@ export const cancelFullEvent = createAsyncThunk(
       return { eventId, data: response.data };
     } catch (error) {
       return rejectWithValue(error.response?.data?.detail || "Failed to cancel event");
+    }
+  }
+);
+
+export const updateEventLocation = createAsyncThunk(
+  "event/updateLocation",
+  async ({ eventId, payload }, { rejectWithValue }) => {
+    try {
+      const response = await api.put(`/organizers/event/${eventId}/location`, payload);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.detail || "Failed to update location");
+    }
+  }
+);
+
+export const updateShowTime = createAsyncThunk(
+  "event/updateShowTime",
+  async ({ showId, payload }, { rejectWithValue }) => {
+    try {
+      const response = await api.put(`/organizers/show/${showId}/time`, payload);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.detail || "Failed to update show time");
     }
   }
 );
